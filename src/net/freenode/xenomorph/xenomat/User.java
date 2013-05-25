@@ -7,6 +7,7 @@ public class User {
     private String _host;
     private String _channel;
     private int _warned;
+    private int _grammarFloodLimitCount;
     private CheckSentence _grammarCheck;
     private long _pendingSince;
 
@@ -94,6 +95,20 @@ public class User {
      */
     public void setWarned(int warned) {
         this._warned = warned;
+    }
+
+    /**
+     * @return the grammarFloodLimitCount
+     */
+    public int getGrammarFloodLimitCount() {
+        return _grammarFloodLimitCount;
+    }
+
+    /**
+     * @param grammarFloodLimitCount the grammarFloodLimitCount to set
+     */
+    public void setGrammarFloodLimitCount(int grammarFloodLimitCount) {
+        this._grammarFloodLimitCount = grammarFloodLimitCount;
     }
 
     /**

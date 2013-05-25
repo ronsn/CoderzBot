@@ -2,7 +2,6 @@ package net.freenode.xenomorph.xenomat;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Random;
@@ -33,6 +32,10 @@ public class XenoMat extends PircBot {
      * if their bantime has depleted, unban them
      */
     private Timer banTimer;
+    /**
+     * Timer muteTimer Check every second if a channel has to be unmuted
+     */
+    private Timer muteTimer;
     // Needed to pull random sentences off the sentence list
     private Random randomGenerator;
     /**
@@ -42,11 +45,14 @@ public class XenoMat extends PircBot {
      */
     private ConcurrentHashMap<String, User> pendingGrammarUsers;
     // Hold a list of channels where the bot was oped/deoped
+    // TODO: Integrate into this.channels
     private ConcurrentHashMap<String, Boolean> opRights;
     // Similar to pendingGrammarUsers, but for active bans
     private ConcurrentHashMap<String, Ban> pendingBans;
     // Similar to pendingGrammarUsers, but for drinkers
     private ConcurrentHashMap<String, User> pendingBeerUsers;
+    // Current channel modes
+    private ConcurrentHashMap<String, Channel> channels;
     // Holds the grammar questions
     private ArrayList<CheckSentence> sentences;
     // Users from this list are never asked grammar questions
@@ -57,13 +63,16 @@ public class XenoMat extends PircBot {
     private Integer answerTime;
     private String sentenceFile = "sentences.txt";
     private String grammarWhitelistFile = "whitelist.txt";
+    private boolean useGrammarFloodLimit;
+    private Integer grammarFloodTime;
+    private Integer grammarFloodLimit;
 
     public enum txtFileType {
 
         SENTENCES, WHITELIST
     }
 
-    public XenoMat(String botNick, String oPass, Integer bTime, Integer aTime) {
+    public XenoMat(String botNick, String oPass, Integer bTime, Integer aTime, boolean uGrammarFloodLimit, Integer gFloodTime, Integer gFloodLimit) {
         // Security check to prevent the public from being able to control the bot
         if (oPass == null || oPass.isEmpty() || oPass.equals(botNick)) {
             System.out.println("OpPass must be set and must not be the BotNick!");
@@ -77,10 +86,14 @@ public class XenoMat extends PircBot {
             answerTime = aTime;
             banTime = bTime;
             //initialize maps
+            useGrammarFloodLimit = uGrammarFloodLimit;
+            grammarFloodTime = gFloodTime;
+            grammarFloodLimit = gFloodLimit;
             pendingGrammarUsers = new ConcurrentHashMap<>();
             pendingBeerUsers = new ConcurrentHashMap<>();
             pendingBans = new ConcurrentHashMap<>();
             opRights = new ConcurrentHashMap<>();
+            channels = new ConcurrentHashMap<>();
 
             // fill the List of sentences
             sentences = fileToArrayList(sentenceFile, txtFileType.SENTENCES);
@@ -297,6 +310,19 @@ public class XenoMat extends PircBot {
         if (!sender.equalsIgnoreCase("chanserv") && !sender.equalsIgnoreCase("nickserv") && !sender.equalsIgnoreCase(getNick())) { // ignore services & self
             String key = sender + login + hostname;
 
+            // Check if it's a pending grammar user and if we should mute the channel
+            if (useGrammarFloodLimit && pendingGrammarUsers.containsKey(key) && channels.containsKey(channel) && !channels.get(channel).getChannelMuted()) {
+                if (pendingGrammarUsers.get(key).getGrammarFloodLimitCount() >= grammarFloodLimit) {
+                    sendMessage(channel, "Der Channel wird ab jetzt für " + grammarFloodTime + " Minuten auf moderiert gesetzt, da " + sender + " im Channel schreibt, statt die Grammatikfrage zu beantworten.");
+                    setMode(channel, "+m");
+                    Channel chan = new Channel(channel, true);
+                    channels.put(channel, chan);
+                    pendingGrammarUsers.get(key).setGrammarFloodLimitCount(0);
+                } else {
+                    pendingGrammarUsers.get(key).setGrammarFloodLimitCount(pendingGrammarUsers.get(key).getGrammarFloodLimitCount() + 1);
+                }
+            }
+
             if (message.equalsIgnoreCase("!time")) {
                 /**
                  * !time
@@ -400,15 +426,20 @@ public class XenoMat extends PircBot {
         if (!sentences.isEmpty() && opRights.get(channel) != null && opRights.get(channel) == true && !sender.equalsIgnoreCase(getNick()) && !grammarWhitelist.contains(sender)) {
 //        if (sender.equalsIgnoreCase("xenomorph")) {
             CheckSentence s = randomSentence();
+            User u = new User(sender, login, hostname, channel, System.currentTimeMillis());
+            u.setCheckSentence(s);
+            pendingGrammarUsers.put(sender + login + hostname, u);
             sendMessage(sender, "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei den enthaltenen Fehler.");
             sendMessage(sender, "Wenn Du nicht innerhalb von " + String.valueOf(answerTime) + " Minuten mit dem korrekten Satz antwortest, muss ich Dich leider kicken.");
             sendMessage(sender, "Ausserdem bekommst Du dann einen Bann von " + String.valueOf(banTime) + " Minuten.");
             sendMessage(sender, "Bitte antworte mit dem kompletten, korrigierten Satz.");
             sendMessage(sender, "Der zu korrigierende Satz lautet:");
             sendMessage(sender, s.getWrongSentence());
-            User u = new User(sender, login, hostname, channel, System.currentTimeMillis());
-            u.setCheckSentence(s);
-            pendingGrammarUsers.put(sender + login + hostname, u);
+        } else if (grammarWhitelist.contains(sender) && opRights.get(channel) && !sender.equalsIgnoreCase(getNick())) {
+            setMode(channel, "+v " + sender);
+        } else if (sender.equalsIgnoreCase(getNick())) {
+            // TODO: Assuming channel is not muted on join. Should be checked!
+            channels.put(channel, new Channel(channel, false));
         }
     }
 
@@ -464,6 +495,20 @@ public class XenoMat extends PircBot {
                         if (opRights.get(pendingBans.get(key).getChannel()) == true) {
                             unBan(pendingBans.get(key).getChannel(), pendingBans.get(key).getBanEntry());
                             pendingBans.remove(key);
+                        }
+                    }
+                }
+            }
+        }, 0, 1000);
+        muteTimer = new Timer();
+        muteTimer.scheduleAtFixedRate(new TimerTask() {
+            public void run() {
+                for (String key : channels.keySet()) {
+                    if (channels.get(key).getMutedSince() > 0 && System.currentTimeMillis() - channels.get(key).getMutedSince() >= grammarFloodTime * 60 * 1000) {
+                        if (opRights.containsKey(key) && opRights.get(key) == true) {
+                            System.out.println("----------------DOOOOOOOOOOOOOO it.");
+                            setMode(key, "-m");
+                            channels.remove(key);
                         }
                     }
                 }

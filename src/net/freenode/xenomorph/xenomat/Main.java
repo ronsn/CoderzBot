@@ -55,6 +55,12 @@ public class Main {
             String channelList = properties.getProperty("ChannelList", "");
             Integer banTime = Integer.valueOf(properties.getProperty("BanTime", "10"));
             Integer answerTime = Integer.valueOf(properties.getProperty("AnswerTime", "10"));
+            Integer grammarFloodLimit = Integer.valueOf(properties.getProperty("GrammarFloodLimit", "6"));
+            Integer grammarFloodTime = Integer.valueOf(properties.getProperty("GrammarFloodTime", "10"));
+            boolean useGrammarFloodLimit = false;
+            if (properties.getProperty("UseGrammarFloodLimit", "false").equals("true")) {
+                useGrammarFloodLimit = true;
+            }
             // We won't need the properties until next start!
             properties = null;
 
@@ -66,7 +72,7 @@ public class Main {
             }
 
             // Now start our bot up.
-            XenoMat bot = new XenoMat(nick, opPass, banTime, answerTime);
+            XenoMat bot = new XenoMat(nick, opPass, banTime, answerTime,useGrammarFloodLimit,grammarFloodTime,grammarFloodLimit);
 
             bot.setAutoNickChange(autoNickChange);
             bot.setEncoding(encoding);
