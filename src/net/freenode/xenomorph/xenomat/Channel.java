@@ -1,13 +1,5 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package net.freenode.xenomorph.xenomat;
 
-/**
- *
- * @author 05282
- */
 public class Channel {
 
     private String _channelName;

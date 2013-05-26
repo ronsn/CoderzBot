@@ -1,0 +1,27 @@
+# The IRC-Server and port to connect to
+Server=chat.freenode.net
+Port=
+# The nickname and password, if the botnick is registeres with nickserv
+Nick=IAmImpatient
+NickPass=
+# The password used to issue commands to the bot
+OpPass=
+# A comma seperated list of channels the bot will join
+ChannelList=#schwarz
+# Int BanTime: Time in minutes a user who can't answer the grammar question will be banned
+BanTime=10
+# Int AnswerTime: Time in minutes a user gets to answer a grammar question
+AnswerTime=2
+# boolead AutoNickChange: Shall the Bot change it's nick if nickserv rejects it?
+AutoNickChange=true
+# String Encoding: Which encoding is used to communicate with the IRC Server?
+Encoding=UTF-8
+# boolean Verbose: Should debug loggin be enabled?
+Verbose=true
+# Int GrammarFloodLimit: If a user exceeds this limit while on grammar trial,
+# the channel will be muted
+GrammarFloodLimit=3
+# Int GrammarFloodTime: Time the channel will be muted if GrammarFloodLimit kicks in
+GrammarFloodTime=20
+# Boolean UseGrammarFloodLimit
+UseGrammarFloodLimit=true
