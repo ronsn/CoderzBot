@@ -61,6 +61,10 @@ public class Main {
             if (properties.getProperty("UseGrammarFloodLimit", "false").equals("true")) {
                 useGrammarFloodLimit = true;
             }
+            boolean killGhost = false;
+            if (properties.getProperty("KillGhost", "false").equals("true")) {
+                killGhost = true;
+            }
             // We won't need the properties until next start!
             properties = null;
 
@@ -72,7 +76,7 @@ public class Main {
             }
 
             // Now start our bot up.
-            XenoMat bot = new XenoMat(nick, opPass, banTime, answerTime,useGrammarFloodLimit,grammarFloodTime,grammarFloodLimit);
+            XenoMat bot = new XenoMat(nick, opPass, banTime, answerTime, useGrammarFloodLimit, grammarFloodTime, grammarFloodLimit, nickPass, killGhost);
 
             bot.setAutoNickChange(autoNickChange);
             bot.setEncoding(encoding);
