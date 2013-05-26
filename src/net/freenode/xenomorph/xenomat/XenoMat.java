@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jibble.pircbot.IrcException;
-import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
 
 public class XenoMat extends PircBot {
@@ -123,6 +122,15 @@ public class XenoMat extends PircBot {
         }
     }
 
+    private void tryGhost() {
+        // TODO: This should be done only once, not multiple times for multiple channels.
+        // TODO: NickServ reply should be checked, on error nick should not be changed
+        if (!getNick().equals(botNickFromConfig) && !botNickPassFromConfig.isEmpty() && killGhost) {
+            sendMessage("nickserv", "ghost " + botNickFromConfig + " " + botNickPassFromConfig);
+            changeNick(botNickFromConfig);
+        }
+    }
+
     private ArrayList fileToArrayList(String fileName, txtFileType type) {
         ArrayList returnList = new ArrayList<>();
         try {
@@ -177,10 +185,8 @@ public class XenoMat extends PircBot {
      */
     public void onNickChange(String oldNick, String login, String hostname, String newNick) {
         //if there's a ghost, regain nick from config.
-        if (!getNick().equals(botNickFromConfig) && !botNickPassFromConfig.isEmpty() && killGhost) {
-            sendMessage("nickserv", "ghost " + botNickFromConfig + " " + botNickPassFromConfig);
-            this.changeNick(botNickFromConfig);
-        }
+        tryGhost();
+        // Track nick change within the lists if neccessary
         String oldKey = oldNick + login + hostname;
         if (pendingGrammarUsers.containsKey(oldKey)) {
             User u = pendingGrammarUsers.get(oldKey);
@@ -228,6 +234,9 @@ public class XenoMat extends PircBot {
      * @param message The actual message.
      */
     public void onPrivateMessage(String sender, String login, String hostname, String message) {
+        /**
+         * TODO: Implement a more flexible command system
+         */
         if (message.equals("!quit " + opPass)) {
             /**
              * !quit
@@ -258,7 +267,10 @@ public class XenoMat extends PircBot {
                 sendMessage(sender, entry);
             }
             sendMessage(sender, "(End of List)");
-        } else if (message.startsWith("!join")) {
+        } else if (message.equals("!ghost " + opPass)) {
+            tryGhost();
+        }
+        else if (message.startsWith("!join")) {
             /**
              * !join opPass [#channel,#channel,...]
              *
@@ -469,12 +481,7 @@ public class XenoMat extends PircBot {
             setMode(channel, "+v " + sender);
         } else if (sender.equalsIgnoreCase(getNick())) {
             //if there's a ghost, regain nick from config.
-            // TODO: This should be done only once, not multiple times for multiple channels.
-            // TODO: NickServ reply should be checked, on error nick should not be changed
-            if (!getNick().equals(botNickFromConfig) && !botNickPassFromConfig.isEmpty() && killGhost) {
-                sendMessage("nickserv", "ghost " + botNickFromConfig + " " + botNickPassFromConfig);
-                changeNick(botNickFromConfig);
-            }
+            tryGhost();
             // TODO: Assuming channel is not muted on join. Should be checked!
             channels.put(channel, new Channel(channel, false));
         }
