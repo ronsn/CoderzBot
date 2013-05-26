@@ -3,6 +3,7 @@ package net.freenode.xenomorph.xenomat;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Timer;
@@ -11,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jibble.pircbot.IrcException;
+import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
 
 public class XenoMat extends PircBot {
@@ -184,6 +187,20 @@ public class XenoMat extends PircBot {
     }
 
     @Override
+    public void onDisconnect() {
+        try {
+            Thread.sleep(10*1000);
+            reconnect();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } catch (IOException ex) {
+            Logger.getLogger(XenoMat.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IrcException ex) {
+            Logger.getLogger(XenoMat.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    @Override
     /**
      * This method is called whenever a private message is sent to the PircBot.
      * <p>
@@ -215,7 +232,7 @@ public class XenoMat extends PircBot {
              */
             sentences = null;
             sentences = fileToArrayList(sentenceFile, txtFileType.SENTENCES);
-            sendMessage(sender, "Rehash complete. List contains " + sentenceFile.length() + " entries.");
+            sendMessage(sender, "Rehash complete. List contains " + sentences.size() + " entries.");
         } else if (message.equals("!rehash " + opPass + " whitelist")) {
             /**
              * !rehash opPass whitelist
@@ -285,7 +302,8 @@ public class XenoMat extends PircBot {
                             TimeUnit.MILLISECONDS.toMinutes(millis),
                             TimeUnit.MILLISECONDS.toSeconds(millis)
                             - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
-                    sendMessage(sender, "Das war falsch. Du hast noch " + tRemaining + " Zeit für die korrekte Antwort.");
+                    int dist = LevenshteinDistance.computeDistance(message.trim(), grammarUser.getCheckSentence().getCorrectSentence());
+                    sendMessage(sender, "Das war falsch. Du hast noch " + tRemaining + " Zeit für die korrekte Antwort. (Fehlerquote: "+String.valueOf(dist)+")");
                     grammarUser.setWarned(grammarUser.getWarned() + 1);
                     pendingGrammarUsers.put(key, grammarUser);
                 }
