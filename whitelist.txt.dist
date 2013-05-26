@@ -1,0 +1,5 @@
+# Syntax: One nickname per line.
+# The # Sign at the beginning of a line means the line is a comment.
+# It's a good idea to include chanserv and nickserv.
+chanserv
+nickserv
