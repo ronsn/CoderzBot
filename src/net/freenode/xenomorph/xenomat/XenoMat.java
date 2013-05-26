@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jibble.pircbot.IrcException;
-import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
 
 public class XenoMat extends PircBot {
@@ -69,13 +68,17 @@ public class XenoMat extends PircBot {
     private boolean useGrammarFloodLimit;
     private Integer grammarFloodTime;
     private Integer grammarFloodLimit;
+    // used to kill ghosts
+    private String botNickFromConfig;
+    private String botNickPassFromConfig;
+    private boolean killGhost;
 
     public enum txtFileType {
 
         SENTENCES, WHITELIST
     }
 
-    public XenoMat(String botNick, String oPass, Integer bTime, Integer aTime, boolean uGrammarFloodLimit, Integer gFloodTime, Integer gFloodLimit) {
+    public XenoMat(String botNick, String oPass, Integer bTime, Integer aTime, boolean uGrammarFloodLimit, Integer gFloodTime, Integer gFloodLimit, String nickPass, boolean kGhost) {
         // Security check to prevent the public from being able to control the bot
         if (oPass == null || oPass.isEmpty() || oPass.equals(botNick)) {
             System.out.println("OpPass must be set and must not be the BotNick!");
@@ -85,6 +88,9 @@ public class XenoMat extends PircBot {
         // set some variables, mostly config
         opPass = oPass;
         try {
+            botNickFromConfig = botNick;
+            botNickPassFromConfig = nickPass;
+            killGhost = kGhost;
             setName(botNick);
             answerTime = aTime;
             banTime = bTime;
@@ -113,6 +119,15 @@ public class XenoMat extends PircBot {
         } catch (Exception ex) {
             Logger.getLogger(XenoMat.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(0);
+        }
+    }
+
+    private void tryGhost() {
+        // TODO: This should be done only once, not multiple times for multiple channels.
+        // TODO: NickServ reply should be checked, on error nick should not be changed
+        if (!getNick().equals(botNickFromConfig) && !botNickPassFromConfig.isEmpty() && killGhost) {
+            sendMessage("nickserv", "ghost " + botNickFromConfig + " " + botNickPassFromConfig);
+            changeNick(botNickFromConfig);
         }
     }
 
@@ -169,6 +184,9 @@ public class XenoMat extends PircBot {
      * @param newNick The new nick.
      */
     public void onNickChange(String oldNick, String login, String hostname, String newNick) {
+        //if there's a ghost, regain nick from config.
+        tryGhost();
+        // Track nick change within the lists if neccessary
         String oldKey = oldNick + login + hostname;
         if (pendingGrammarUsers.containsKey(oldKey)) {
             User u = pendingGrammarUsers.get(oldKey);
@@ -189,7 +207,7 @@ public class XenoMat extends PircBot {
     @Override
     public void onDisconnect() {
         try {
-            Thread.sleep(10*1000);
+            Thread.sleep(10 * 1000);
             reconnect();
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -216,6 +234,9 @@ public class XenoMat extends PircBot {
      * @param message The actual message.
      */
     public void onPrivateMessage(String sender, String login, String hostname, String message) {
+        /**
+         * TODO: Implement a more flexible command system
+         */
         if (message.equals("!quit " + opPass)) {
             /**
              * !quit
@@ -246,7 +267,10 @@ public class XenoMat extends PircBot {
                 sendMessage(sender, entry);
             }
             sendMessage(sender, "(End of List)");
-        } else if (message.startsWith("!join")) {
+        } else if (message.equals("!ghost " + opPass)) {
+            tryGhost();
+        }
+        else if (message.startsWith("!join")) {
             /**
              * !join opPass [#channel,#channel,...]
              *
@@ -303,7 +327,7 @@ public class XenoMat extends PircBot {
                             TimeUnit.MILLISECONDS.toSeconds(millis)
                             - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
                     int dist = LevenshteinDistance.computeDistance(message.trim(), grammarUser.getCheckSentence().getCorrectSentence());
-                    sendMessage(sender, "Das war falsch. Du hast noch " + tRemaining + " Zeit für die korrekte Antwort. (Fehlerquote: "+String.valueOf(dist)+")");
+                    sendMessage(sender, "Das war falsch. Du hast noch " + tRemaining + " Zeit für die korrekte Antwort. (Fehlerquote: " + String.valueOf(dist) + ")");
                     grammarUser.setWarned(grammarUser.getWarned() + 1);
                     pendingGrammarUsers.put(key, grammarUser);
                 }
@@ -456,6 +480,8 @@ public class XenoMat extends PircBot {
         } else if (grammarWhitelist.contains(sender) && opRights.get(channel) && !sender.equalsIgnoreCase(getNick())) {
             setMode(channel, "+v " + sender);
         } else if (sender.equalsIgnoreCase(getNick())) {
+            //if there's a ghost, regain nick from config.
+            tryGhost();
             // TODO: Assuming channel is not muted on join. Should be checked!
             channels.put(channel, new Channel(channel, false));
         }
