@@ -1,10 +1,12 @@
 package net.freenode.xenomorph.xenomat;
 
+import groovy.lang.GroovyClassLoader;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -12,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang3.StringUtils;
+import org.codehaus.groovy.control.CompilationFailedException;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.PircBot;
 
@@ -52,7 +56,7 @@ public class XenoMat extends PircBot {
     // Similar to pendingGrammarUsers, but for active bans
     private ConcurrentHashMap<String, Ban> pendingBans;
     // Similar to pendingGrammarUsers, but for drinkers
-    private ConcurrentHashMap<String, User> pendingBeerUsers;
+    private ConcurrentHashMap<String, HashMap<String, Command>> commandLastUsedAt;
     // Current channel modes
     private ConcurrentHashMap<String, Channel> channels;
     // Holds the grammar questions
@@ -99,7 +103,7 @@ public class XenoMat extends PircBot {
             grammarFloodTime = gFloodTime;
             grammarFloodLimit = gFloodLimit;
             pendingGrammarUsers = new ConcurrentHashMap<>();
-            pendingBeerUsers = new ConcurrentHashMap<>();
+            commandLastUsedAt = new ConcurrentHashMap<>();
             pendingBans = new ConcurrentHashMap<>();
             opRights = new ConcurrentHashMap<>();
             channels = new ConcurrentHashMap<>();
@@ -195,12 +199,11 @@ public class XenoMat extends PircBot {
             u.setNick(newNick);
             pendingGrammarUsers.put(newKey, u);
         }
-        if (pendingBeerUsers.containsKey(oldKey)) {
-            User u = pendingBeerUsers.get(oldKey);
-            pendingBeerUsers.remove(oldKey);
+        if (commandLastUsedAt.containsKey(oldKey)) {
+            HashMap<String, Command> lUA = commandLastUsedAt.get(oldKey);
+            commandLastUsedAt.remove(oldKey);
             String newKey = newNick + login + hostname;
-            u.setNick(newNick);
-            pendingBeerUsers.put(newKey, u);
+            commandLastUsedAt.put(newKey, lUA);
         }
     }
 
@@ -209,6 +212,9 @@ public class XenoMat extends PircBot {
         try {
             Thread.sleep(10 * 1000);
             reconnect();
+            for (Channel chan : channels.values()) {
+                joinChannel(chan.getChannelName());
+            }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         } catch (IOException ex) {
@@ -269,8 +275,7 @@ public class XenoMat extends PircBot {
             sendMessage(sender, "(End of List)");
         } else if (message.equals("!ghost " + opPass)) {
             tryGhost();
-        }
-        else if (message.startsWith("!join")) {
+        } else if (message.startsWith("!join")) {
             /**
              * !join opPass [#channel,#channel,...]
              *
@@ -365,39 +370,83 @@ public class XenoMat extends PircBot {
                 }
             }
 
-            if (message.equalsIgnoreCase("!time")) {
-                /**
-                 * !time
-                 *
-                 * Sends the current time into channel. -> Time of the bot host,
-                 * not the time of the user!
-                 */
-                String time = new java.util.Date().toString();
-                sendMessage(channel, sender + ": The time is now " + time);
-            } else if (message.equalsIgnoreCase("!beer")) {
-                /**
-                 * !beer
-                 *
-                 * Give a virtual beer to the sender. Except he already had one
-                 * in the past 5 minutes.
-                 */
-                User beerUser = pendingBeerUsers.get(key);
-                if (beerUser != null && beerUser.getWarned() == 0) {
-                    long millis = (5 * 60 * 1000 - (System.currentTimeMillis() - beerUser.getPendingSince()));
-                    String tRemaining = String.format("%d Minuten, %d Sekunden",
-                            TimeUnit.MILLISECONDS.toMinutes(millis),
-                            TimeUnit.MILLISECONDS.toSeconds(millis)
-                            - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
-                    sendMessage(channel, "Du hattest in den letzten fünf Minuten schon ein Bier, " + sender + ". Frag in " + tRemaining + " wieder.");
-                    beerUser.setWarned(beerUser.getWarned() + 1);
-                    pendingBeerUsers.put(key, beerUser);
-                } else if (beerUser == null) {
-                    pendingBeerUsers.put(key, new User(sender, login, hostname, channel, System.currentTimeMillis()));
-                    sendAction(channel, "schiebt " + sender + " ein kühles Bier rüber.");
+            if (message.startsWith("!")) {
+                String[] commandParts = message.split("\\s");
+                String[] commandArgs = new String[]{};
+                if (commandParts.length > 1) {
+                    commandArgs = new String[commandParts.length - 1];
+                    for (int i = 0; i < commandParts.length; i++) {
+                        if (i > 0) {
+                            commandArgs[i - 1] = commandParts[i];
+                        }
+                    }
+                }
+                String command = StringUtils.strip(commandParts[0], "!");
+                CommandResponse returnValue = runCommand(command, channel, sender, login, hostname, commandArgs);
+                if (returnValue.getCommandSuccesfull() == true) {
+                    if (commandLastUsedAt.get(key) != null) {
+                        HashMap<String, Command> cmd = commandLastUsedAt.get(key);
+                        if (cmd.get(command) != null) {
+                            Command c = cmd.get(command);
+                            c.setLastUsedAt(System.currentTimeMillis());
+                            cmd.remove(command);
+                            cmd.put(command, c);
+                            commandLastUsedAt.remove(key);
+                            commandLastUsedAt.put(key, cmd);
+                        } else {
+                            Command c = new Command();
+                            c.setCommandName(command);
+                            c.setLastUsedAt(System.currentTimeMillis());
+                            cmd.put(command, c);
+                            commandLastUsedAt.remove(key);
+                            commandLastUsedAt.put(key, cmd);
+                        }
+                    } else {
+                        Command c = new Command();
+                        c.setCommandName(command);
+                        c.setLastUsedAt(System.currentTimeMillis());
+                        HashMap<String, Command> cmd = new HashMap<>();
+                        cmd.put(command, c);
+                        commandLastUsedAt.put(key, cmd);
+                    }
+                }
+                for (String msg : returnValue.getResponseText()) {
+                    if (msg.startsWith("/me ")) {
+                        String action = StringUtils.stripStart(msg, "/me ");
+                        sendAction(channel, action);
+                    } else {
+                        sendMessage(channel, msg);
+                    }
                 }
             }
 
         }
+    }
+
+    public CommandResponse runCommand(String command, String channel, String sender, String login, String hostname, String[] args) {
+        ArrayList<String> text = new ArrayList<String>();
+        CommandResponse returnVal = new CommandResponse(text, false);
+        try {
+            if (command.matches("[A-Za-z]+")) {
+                File commandFile = new File("botCommands/" + command + ".groovy");
+                if (commandFile.exists()) {
+                    String key = sender + login + hostname;
+                    GroovyClassLoader gcl = new GroovyClassLoader();
+                    Class clazz = gcl.parseClass(commandFile);
+                    Object aScript = clazz.newInstance();
+
+                    botCommand hw = (botCommand) aScript;
+                    long cmdLastUsedAt = -1;
+                    if (commandLastUsedAt.get(key) != null && commandLastUsedAt.get(key).get(command) != null && commandLastUsedAt.get(key).get(command).getLastUsedAt() != null) {
+                        cmdLastUsedAt = commandLastUsedAt.get(key).get(command).getLastUsedAt();
+                    }
+                    returnVal = hw.onCommand(channel, sender, args, cmdLastUsedAt);
+                }
+            }
+        } catch (CompilationFailedException | IOException | InstantiationException | IllegalAccessException ex) {
+            Logger.getLogger(XenoMat.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return returnVal;
     }
 
     @Override
@@ -448,6 +497,13 @@ public class XenoMat extends PircBot {
     public void onOp(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
         if (recipient.equals(getNick())) {
             opRights.put(channel, Boolean.TRUE);
+        }
+    }
+
+    @Override
+    protected void onPart(String channel, String sender, String login, String hostname) {
+        if (sender.equalsIgnoreCase(getNick())) {
+            channels.remove(channel);
         }
     }
 
@@ -517,16 +573,6 @@ public class XenoMat extends PircBot {
                             kick(pendingGrammarUsers.get(key).getChannel(), pendingGrammarUsers.get(key).getNick());
                         }
                         pendingGrammarUsers.remove(key);
-                    }
-                }
-            }
-        }, 0, 1000);
-        beerTimer = new Timer();
-        beerTimer.scheduleAtFixedRate(new TimerTask() {
-            public void run() {
-                for (String key : pendingBeerUsers.keySet()) {
-                    if (System.currentTimeMillis() - pendingBeerUsers.get(key).getPendingSince() >= 5 * 60 * 1000) {
-                        pendingBeerUsers.remove(key);
                     }
                 }
             }

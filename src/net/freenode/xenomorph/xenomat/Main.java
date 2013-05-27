@@ -19,7 +19,7 @@ public class Main {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InstantiationException, IllegalAccessException {
 
         try {
             // Read the properties file. If it doesn't exist, quit with error
@@ -104,7 +104,5 @@ public class Main {
         } catch (IOException | NumberFormatException | IrcException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
-
-
     }
 }
