@@ -8,15 +8,15 @@ public class bring implements net.freenode.xenomorph.xenomat.botCommand {
     public CommandResponse onCommand(String channel, String sender, String[] params, long commandLastUsedAt) {
     	ArrayList<String> rt = new ArrayList<String>()
         Boolean success = false
-        def drinks = ["Kaffee":"einen heißen Kaffee", "Tee":"einen frisch gebrühten Tee", "Wasser":"ein Glas kühles Wasser", "Cola":"ein großes Glas hausgemachte Cola", "Limonade":"ein Glas leckere Limonade", "Kakao":"eine Tasse heißen, schokoladigen Kakao", "Cappucino":"eine Tasse perfekten Cappucino"]
-        if(params.length != 2 || !drinks.containsKey(params[1])){
+        def drinks = ["kaffee":"einen heißen Kaffee", "tee":"einen frisch gebrühten Tee", "wasser":"ein Glas kühles Wasser", "cola":"ein großes Glas hausgemachte Cola", "limonade":"ein Glas leckere Limonade", "kakao":"eine Tasse heißen, schokoladigen Kakao", "cappucino":"eine Tasse perfekten Cappucino"]
+        if(params.length != 2 || !drinks.containsKey(params[1].toLowerCase())){
             rt.add("Ich konnte Deine Bestellung nicht verarbeiten, "+sender+", benutze: !bring Zielperson Getränk")
             def drinklist = drinks.keySet() as String[];
-            rt.add("Wir haben folgende Getränke auf der Karte: "+drinklist.join(" "))
+            rt.add("Wir haben folgende Getränke auf der Karte: "+drinklist.collect{ it.capitalize() }.join(' '))
         }
         else{
             success = true
-            rt.add("/me serviert "+params[0]+" "+drinks.get(params[1])+".")
+            rt.add("/me serviert "+params[0]+" "+drinks.get(params[1].toLowerCase())+".")
         }
         CommandResponse cmdr = new CommandResponse(rt,success)
     }
