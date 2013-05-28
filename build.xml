@@ -93,8 +93,8 @@
         <copy file="sentences.txt" todir="${store.dir}"/>
         <copy file="whitelist.txt" todir="${store.dir}"/>
         <copy file="bot.properties" todir="${store.dir}"/>
-        <copy file="HelloWorld.groovy" todir="${store.dir}/botCommands"/>
-        <copy file="beer.groovy" todir="${store.dir}/botCommands"/>
+        <copy file="botCommands/HelloWorld.groovy" todir="${store.dir}/botCommands"/>
+        <copy file="botCommands/beer.groovy" todir="${store.dir}/botCommands"/>
 
         <jar destfile="${store.dir}/temp_final.jar" filesetmanifest="skip">
             <zipgroupfileset dir="dist" includes="*.jar"/>

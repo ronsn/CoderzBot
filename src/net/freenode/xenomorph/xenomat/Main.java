@@ -86,8 +86,10 @@ public class Main {
 
             // Connect to the IRC server.
             if (port.isEmpty()) {
+                System.out.println("Trying to connect to "+server);
                 bot.connect(server);
             } else {
+                System.out.println("Trying to connect to "+server+" on port "+port);
                 bot.connect(server, Integer.valueOf(port));
             }
 
