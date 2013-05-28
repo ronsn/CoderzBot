@@ -332,7 +332,7 @@ public class XenoMat extends PircBot {
                             TimeUnit.MILLISECONDS.toSeconds(millis)
                             - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
                     int dist = LevenshteinDistance.computeDistance(message.trim(), grammarUser.getCheckSentence().getCorrectSentence());
-                    sendMessage(sender, "Das war falsch. Du hast noch " + tRemaining + " Zeit für die korrekte Antwort. (Fehlerquote: " + String.valueOf(dist) + ")");
+                    sendMessage(sender, "Das war falsch. Du hast noch " + tRemaining + " Zeit fÃ¼r die korrekte Antwort. (Fehlerquote: " + String.valueOf(dist) + ")");
                     grammarUser.setWarned(grammarUser.getWarned() + 1);
                     pendingGrammarUsers.put(key, grammarUser);
                 }
@@ -360,7 +360,7 @@ public class XenoMat extends PircBot {
             // Check if it's a pending grammar user and if we should mute the channel
             if (useGrammarFloodLimit && pendingGrammarUsers.containsKey(key) && channels.containsKey(channel) && !channels.get(channel).getChannelMuted()) {
                 if (pendingGrammarUsers.get(key).getGrammarFloodLimitCount() >= grammarFloodLimit) {
-                    sendMessage(channel, "Der Channel wird ab jetzt für " + grammarFloodTime + " Minuten auf moderiert gesetzt, da " + sender + " im Channel schreibt, statt die Grammatikfrage zu beantworten.");
+                    sendMessage(channel, "Der Channel wird ab jetzt fÃ¼r " + grammarFloodTime + " Minuten auf moderiert gesetzt, da " + sender + " im Channel schreibt, statt die Grammatikfrage zu beantworten.");
                     setMode(channel, "+m");
                     Channel chan = new Channel(channel, true);
                     channels.put(channel, chan);
@@ -566,7 +566,7 @@ public class XenoMat extends PircBot {
                     if (System.currentTimeMillis() - pendingGrammarUsers.get(key).getPendingSince() >= answerTime * 60 * 1000) {
                         if (opRights.get(pendingGrammarUsers.get(key).getChannel()) == true) {
                             sendMessage(pendingGrammarUsers.get(key).getNick(), "<<Du hast den Anti-Spammer Test leider nicht bestanden.>>");
-                            sendMessage(pendingGrammarUsers.get(key).getNick(), "Du wirst für " + banTime + " Minuten vom Channel " + pendingGrammarUsers.get(key).getChannel() + " ausgeschlossen.");
+                            sendMessage(pendingGrammarUsers.get(key).getNick(), "Du wirst fÃ¼r " + banTime + " Minuten vom Channel " + pendingGrammarUsers.get(key).getChannel() + " ausgeschlossen.");
                             String banmask = "*!*@" + pendingGrammarUsers.get(key).getHost();
                             pendingBans.put(banmask, new Ban(banmask, pendingGrammarUsers.get(key).getChannel(), banTime * 60 * 1000, System.currentTimeMillis()));
                             ban(pendingGrammarUsers.get(key).getChannel(), banmask);
@@ -596,9 +596,10 @@ public class XenoMat extends PircBot {
                 for (String key : channels.keySet()) {
                     if (channels.get(key).getMutedSince() > 0 && System.currentTimeMillis() - channels.get(key).getMutedSince() >= grammarFloodTime * 60 * 1000) {
                         if (opRights.containsKey(key) && opRights.get(key) == true) {
-                            System.out.println("----------------DOOOOOOOOOOOOOO it.");
                             setMode(key, "-m");
                             channels.remove(key);
+                            Channel chan = new Channel(key, false);
+                            channels.put(key, chan);
                         }
                     }
                 }
