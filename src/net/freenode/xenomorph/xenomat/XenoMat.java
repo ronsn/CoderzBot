@@ -232,12 +232,10 @@ public class XenoMat extends PircBot {
              * Print list of available commands: Channel: !help, !time, !beer
              * Query : !quit, !rehash, !ghost, !join, !part
              */
-            setMessageDelay(10);
             sendMessage(sender, "Available commands:");
             sendMessage(sender, "Channel: !help, !time, !beer");
             sendMessage(sender, "Query: !help, !quit, !rehash, !ghost, !join, !part");
             sendMessage(sender, "Further information are displayed by: <command> --help");
-//            setMessageDelay(1000);
         } else if (message.equals("!help --help")) {
             sendMessage(sender, "!help - opens a private query to user and print this help");
         } else if (message.equalsIgnoreCase("!time --help")) {
