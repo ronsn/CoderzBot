@@ -605,7 +605,7 @@ public class XenoMat extends PircBot {
                             String banmask = "*!*@" + pendingGrammarUsers.get(key).getHost();
                             pendingBans.put(banmask, new Ban(banmask, pendingGrammarUsers.get(key).getChannel(), banTime * 60 * 1000, System.currentTimeMillis()));
                             ban(pendingGrammarUsers.get(key).getChannel(), banmask);
-                            kick(pendingGrammarUsers.get(key).getChannel(), pendingGrammarUsers.get(key).getNick());
+                            kick(pendingGrammarUsers.get(key).getChannel(), pendingGrammarUsers.get(key).getNick() , "Du wurdest für " + banTime + " Minuten verbannt, weil du den Test nicht bestanden hast.");
                         }
                         pendingGrammarUsers.remove(key);
                     }
