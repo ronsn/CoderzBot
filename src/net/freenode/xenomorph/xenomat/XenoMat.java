@@ -224,6 +224,38 @@ public class XenoMat extends PircBot {
         }
     }
 
+    public void helpSystem(String message, String sender) {
+        if (message.trim().equals("!help")) {
+            /**
+             * !help
+             *
+             * Print list of available commands: Channel: !help, !time, !beer
+             * Query : !quit, !rehash, !ghost, !join, !part
+             */
+            sendMessage(sender, "Available commands:");
+            sendMessage(sender, "Channel: !help, !time, !beer");
+            sendMessage(sender, "Query: !help, !quit, !rehash, !ghost, !join, !part");
+            sendMessage(sender, "Further information are displayed by: <command> --help");
+        } else if (message.equals("!help --help")) {
+            sendMessage(sender, "!help - opens a private query to user and print this help");
+        } else if (message.equalsIgnoreCase("!time --help")) {
+            sendMessage(sender, "!time - print current date and time");
+        } else if (message.equalsIgnoreCase("!beer --help")) {
+            sendMessage(sender, "!beer - bot passes user a beer");
+        } else if (message.equals("!quit --help")) {
+            sendMessage(sender, "!quit   + opPass - bot quits server and shuts down");
+        } else if (message.equals("!rehash --help")) {
+            sendMessage(sender, "!rehash + opPass + sentences - re-read sentence.txt\"");
+            sendMessage(sender, "!rehash + opPass + whitelist - re-read whitelist.txt");
+        } else if (message.equals("!ghost --help")) {
+            sendMessage(sender, "!ghost  + opPass - executes tryGhost");
+        } else if (message.equals("!join --help")) {
+            sendMessage(sender, "!join opPass [#channel,#channel,...] - Join all given channels. Needs the Hashtag before channel names");
+        } else if (message.equals("!part --help")) {
+            sendMessage(sender, "!part - opPass [#channel,#channel,...] - Leave all given channels. Needs the Hashtag before channel names");
+        }
+    }
+
     @Override
     /**
      * This method is called whenever a private message is sent to the PircBot.
@@ -307,6 +339,8 @@ public class XenoMat extends PircBot {
                     }
                 }
             }
+        } else if (message.startsWith("!help")) {
+            helpSystem(message, sender);
         } else {
             /**
              * Since there was no command given, it is probably someone
@@ -369,8 +403,9 @@ public class XenoMat extends PircBot {
                     pendingGrammarUsers.get(key).setGrammarFloodLimitCount(pendingGrammarUsers.get(key).getGrammarFloodLimitCount() + 1);
                 }
             }
-
-            if (message.startsWith("!")) {
+            if (message.startsWith("!help")) {
+                helpSystem(message, sender);
+            } else if (message.startsWith("!")) {
                 String[] commandParts = message.split("\\s");
                 String[] commandArgs = new String[]{};
                 if (commandParts.length > 1) {
