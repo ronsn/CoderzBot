@@ -4,6 +4,10 @@ Port=
 # The nickname and password, if the botnick is registeres with nickserv
 Nick=IAmImpatient
 NickPass=
+# login part of hostmask, eg nick!login@host
+Login=
+# The password for the irc server. Only fill if needed
+ServerPass=
 # The password used to issue commands to the bot
 OpPass=
 # A comma seperated list of channels the bot will join

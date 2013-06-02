@@ -49,9 +49,11 @@ public class Main {
             String encoding = properties.getProperty("Encoding", "UTF-8");
             String server = properties.getProperty("Server");
             String nick = properties.getProperty("Nick");
+            String login = properties.getProperty("Login", nick);
             String nickPass = properties.getProperty("NickPass", "");
             String opPass = properties.getProperty("OpPass", "");
-            String port = properties.getProperty("Port", "");
+            String serverPass = properties.getProperty("ServerPass", "");
+            String port = properties.getProperty("Port", "6667");
             String channelList = properties.getProperty("ChannelList", "");
             Integer banTime = Integer.valueOf(properties.getProperty("BanTime", "10"));
             Integer answerTime = Integer.valueOf(properties.getProperty("AnswerTime", "10"));
@@ -76,7 +78,8 @@ public class Main {
             }
 
             // Now start our bot up.
-            XenoMat bot = new XenoMat(nick, opPass, banTime, answerTime, useGrammarFloodLimit, grammarFloodTime, grammarFloodLimit, nickPass, killGhost);
+            XenoMat bot = new XenoMat(nick, opPass, banTime, answerTime, useGrammarFloodLimit, grammarFloodTime, grammarFloodLimit, nickPass, killGhost, login);
+
 
             bot.setAutoNickChange(autoNickChange);
             bot.setEncoding(encoding);
@@ -85,12 +88,12 @@ public class Main {
             bot.setVerbose(verbose);
 
             // Connect to the IRC server.
-            if (port.isEmpty()) {
-                System.out.println("Trying to connect to "+server);
-                bot.connect(server);
-            } else {
-                System.out.println("Trying to connect to "+server+" on port "+port);
+            if (serverPass.isEmpty()) {
+                System.out.println("Trying to connect to " + server + " on port " + port);
                 bot.connect(server, Integer.valueOf(port));
+            } else {
+                System.out.println("Trying to connect to " + server + " on port " + port + " with server password.");
+                bot.connect(server, Integer.valueOf(port), serverPass);
             }
 
             if (!nickPass.isEmpty()) {
