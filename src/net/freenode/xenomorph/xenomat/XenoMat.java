@@ -76,13 +76,14 @@ public class XenoMat extends PircBot {
     private String botNickFromConfig;
     private String botNickPassFromConfig;
     private boolean killGhost;
+    private String loginFromConfig;
 
     public enum txtFileType {
 
         SENTENCES, WHITELIST
     }
 
-    public XenoMat(String botNick, String oPass, Integer bTime, Integer aTime, boolean uGrammarFloodLimit, Integer gFloodTime, Integer gFloodLimit, String nickPass, boolean kGhost) {
+    public XenoMat(String botNick, String oPass, Integer bTime, Integer aTime, boolean uGrammarFloodLimit, Integer gFloodTime, Integer gFloodLimit, String nickPass, boolean kGhost, String login) {
         // Security check to prevent the public from being able to control the bot
         if (oPass == null || oPass.isEmpty() || oPass.equals(botNick)) {
             System.out.println("OpPass must be set and must not be the BotNick!");
@@ -96,6 +97,8 @@ public class XenoMat extends PircBot {
             botNickPassFromConfig = nickPass;
             killGhost = kGhost;
             setName(botNick);
+            loginFromConfig = login;
+            this.setLogin(login);
             answerTime = aTime;
             banTime = bTime;
             //initialize maps
@@ -562,7 +565,12 @@ public class XenoMat extends PircBot {
             User u = new User(sender, login, hostname, channel, System.currentTimeMillis());
             u.setCheckSentence(s);
             pendingGrammarUsers.put(sender + login + hostname, u);
-            sendMessage(sender, "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei den enthaltenen Fehler.");
+            Integer errorCount = LevenshteinDistance.computeDistance(s.getCorrectSentence(), s.getWrongSentence());
+            if (errorCount == 1) {
+                sendMessage(sender, "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei den enthaltenen Fehler.");
+            } else {
+                sendMessage(sender, "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei die " + String.valueOf(errorCount) + " enthaltenen Fehler.");
+            }
             sendMessage(sender, "Wenn Du nicht innerhalb von " + String.valueOf(answerTime) + " Minuten mit dem korrekten Satz antwortest, muss ich Dich leider kicken.");
             sendMessage(sender, "Ausserdem bekommst Du dann einen Bann von " + String.valueOf(banTime) + " Minuten.");
             sendMessage(sender, "Bitte antworte mit dem kompletten, korrigierten Satz.");
@@ -605,7 +613,7 @@ public class XenoMat extends PircBot {
                             String banmask = "*!*@" + pendingGrammarUsers.get(key).getHost();
                             pendingBans.put(banmask, new Ban(banmask, pendingGrammarUsers.get(key).getChannel(), banTime * 60 * 1000, System.currentTimeMillis()));
                             ban(pendingGrammarUsers.get(key).getChannel(), banmask);
-                            kick(pendingGrammarUsers.get(key).getChannel(), pendingGrammarUsers.get(key).getNick() , "Du wurdest für " + banTime + " Minuten verbannt, weil du den Test nicht bestanden hast.");
+                            kick(pendingGrammarUsers.get(key).getChannel(), pendingGrammarUsers.get(key).getNick(), "Du wurdest für " + banTime + " Minuten verbannt, weil du den Test nicht bestanden hast.");
                         }
                         pendingGrammarUsers.remove(key);
                     }
