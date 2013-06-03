@@ -16,8 +16,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.groovy.control.CompilationFailedException;
-import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.PircBot;
+
 
 public class XenoMat extends PircBot {
 
@@ -49,7 +49,7 @@ public class XenoMat extends PircBot {
      * ConcurrentHashMap because there are two threads using it: The timer as
      * well as the PircBot events.
      */
-    private ConcurrentHashMap<String, User> pendingGrammarUsers;
+    private ConcurrentHashMap<String, XenoMatUser> pendingGrammarUsers;
     // Hold a list of channels where the bot was oped/deoped
     // TODO: Integrate into this.channels
     private ConcurrentHashMap<String, Boolean> opRights;
@@ -58,7 +58,7 @@ public class XenoMat extends PircBot {
     // Similar to pendingGrammarUsers, but for drinkers
     private ConcurrentHashMap<String, HashMap<String, Command>> commandLastUsedAt;
     // Current channel modes
-    private ConcurrentHashMap<String, Channel> channels;
+    private ConcurrentHashMap<String, XenoMatChannel> channels;
     // Holds the grammar questions
     private ArrayList<CheckSentence> sentences;
     // Users from this list are never asked grammar questions
@@ -196,7 +196,7 @@ public class XenoMat extends PircBot {
         // Track nick change within the lists if neccessary
         String oldKey = oldNick + login + hostname;
         if (pendingGrammarUsers.containsKey(oldKey)) {
-            User u = pendingGrammarUsers.get(oldKey);
+            XenoMatUser u = pendingGrammarUsers.get(oldKey);
             pendingGrammarUsers.remove(oldKey);
             String newKey = newNick + login + hostname;
             u.setNick(newNick);
@@ -215,14 +215,12 @@ public class XenoMat extends PircBot {
         try {
             Thread.sleep(10 * 1000);
             reconnect();
-            for (Channel chan : channels.values()) {
+            for (XenoMatChannel chan : channels.values()) {
                 joinChannel(chan.getChannelName());
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-        } catch (IOException ex) {
-            Logger.getLogger(XenoMat.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IrcException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(XenoMat.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -232,7 +230,7 @@ public class XenoMat extends PircBot {
             /**
              * !help
              *
-             * Print list of available commands: Channel: !help, !time, !beer
+             * Print list of available commands: XenoMatChannel: !help, !time, !beer
              * Query : !quit, !rehash, !ghost, !join, !part
              */
             sendMessage(sender, "Available commands:");
@@ -350,7 +348,7 @@ public class XenoMat extends PircBot {
              * answering a grammar question.
              */
             String key = sender + login + hostname;
-            User grammarUser = pendingGrammarUsers.get(key);
+            XenoMatUser grammarUser = pendingGrammarUsers.get(key);
             // check if the user is known as pending grammar user
             if (grammarUser != null) {
                 /**
@@ -390,16 +388,17 @@ public class XenoMat extends PircBot {
      * @param message The actual message sent to the channel.
      */
     public void onMessage(String channel, String sender, String login, String hostname, String message) {
-
+        System.out.println("MSG from " + sender + " in " + channel + " --- " + message);
+        message = message.trim();
         if (!sender.equalsIgnoreCase("chanserv") && !sender.equalsIgnoreCase("nickserv") && !sender.equalsIgnoreCase(getNick())) { // ignore services & self
             String key = sender + login + hostname;
-
+            System.out.println("Key " + " --- " + key);
             // Check if it's a pending grammar user and if we should mute the channel
             if (useGrammarFloodLimit && pendingGrammarUsers.containsKey(key) && channels.containsKey(channel) && !channels.get(channel).getChannelMuted()) {
                 if (pendingGrammarUsers.get(key).getGrammarFloodLimitCount() >= grammarFloodLimit) {
                     sendMessage(channel, "Der Channel wird ab jetzt für " + grammarFloodTime + " Minuten auf moderiert gesetzt, da " + sender + " im Channel schreibt, statt die Grammatikfrage zu beantworten.");
                     setMode(channel, "+m");
-                    Channel chan = new Channel(channel, true);
+                    XenoMatChannel chan = new XenoMatChannel(channel, true);
                     channels.put(channel, chan);
                     pendingGrammarUsers.get(key).setGrammarFloodLimitCount(0);
                 } else {
@@ -451,8 +450,10 @@ public class XenoMat extends PircBot {
                 for (String msg : returnValue.getResponseText()) {
                     if (msg.startsWith("/me ")) {
                         String action = StringUtils.stripStart(msg, "/me ");
+                        System.out.println("SENDACTION " +channel + " --- " + action);
                         sendAction(channel, action);
                     } else {
+                        System.out.println("SENDMESSAGE " +channel + " --- " + msg);
                         sendMessage(channel, msg);
                     }
                 }
@@ -478,7 +479,7 @@ public class XenoMat extends PircBot {
                     if (commandLastUsedAt.get(key) != null && commandLastUsedAt.get(key).get(command) != null && commandLastUsedAt.get(key).get(command).getLastUsedAt() != null) {
                         cmdLastUsedAt = commandLastUsedAt.get(key).get(command).getLastUsedAt();
                     }
-                    returnVal = hw.onCommand(channel, sender, args, cmdLastUsedAt);
+                    returnVal = hw.onCommand(sender, args, cmdLastUsedAt);
                 }
             }
         } catch (CompilationFailedException | IOException | InstantiationException | IllegalAccessException ex) {
@@ -562,7 +563,7 @@ public class XenoMat extends PircBot {
         if (!sentences.isEmpty() && opRights.get(channel) != null && opRights.get(channel) == true && !sender.equalsIgnoreCase(getNick()) && !grammarWhitelist.contains(sender)) {
 //        if (sender.equalsIgnoreCase("xenomorph")) {
             CheckSentence s = randomSentence();
-            User u = new User(sender, login, hostname, channel, System.currentTimeMillis());
+            XenoMatUser u = new XenoMatUser(sender, login, hostname, channel, System.currentTimeMillis());
             u.setCheckSentence(s);
             pendingGrammarUsers.put(sender + login + hostname, u);
             Integer errorCount = LevenshteinDistance.computeDistance(s.getCorrectSentence(), s.getWrongSentence());
@@ -582,7 +583,7 @@ public class XenoMat extends PircBot {
             //if there's a ghost, regain nick from config.
             tryGhost();
             // TODO: Assuming channel is not muted on join. Should be checked!
-            channels.put(channel, new Channel(channel, false));
+            channels.put(channel, new XenoMatChannel(channel, false));
         }
     }
 
@@ -641,7 +642,7 @@ public class XenoMat extends PircBot {
                         if (opRights.containsKey(key) && opRights.get(key) == true) {
                             setMode(key, "-m");
                             channels.remove(key);
-                            Channel chan = new Channel(key, false);
+                            XenoMatChannel chan = new XenoMatChannel(key, false);
                             channels.put(key, chan);
                         }
                     }

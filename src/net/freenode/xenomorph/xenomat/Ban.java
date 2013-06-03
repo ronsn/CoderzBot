@@ -1,17 +1,22 @@
 package net.freenode.xenomorph.xenomat;
 
+import org.pircbotx.Channel;
+import org.pircbotx.User;
+
 public class Ban {
 
     private String _banEntry;
-    private String _channel;
+    private Channel _channel;
     private long _banDuration;
     private long _timeOfBan;
+    private User _u;
 
-    public Ban(String banEntry, String channel, long banDuration, long timeOfBan) {
+    public Ban(String banEntry, Channel channel, long banDuration, long timeOfBan, User u) {
         _banEntry = banEntry;
         _banDuration = banDuration;
         _timeOfBan = timeOfBan;
         _channel = channel;
+        _u = u;
     }
 
     /**
@@ -31,14 +36,14 @@ public class Ban {
     /**
      * @return the _channel
      */
-    public String getChannel() {
+    public Channel getChannel() {
         return _channel;
     }
 
     /**
      * @param channel the _channel to set
      */
-    public void setChannel(String channel) {
+    public void setChannel(Channel channel) {
         this._channel = channel;
     }
 
@@ -68,5 +73,9 @@ public class Ban {
      */
     public void setTimeOfBan(long timeOfBan) {
         this._timeOfBan = timeOfBan;
+    }
+
+    public User getUser() {
+        return _u;
     }
 }

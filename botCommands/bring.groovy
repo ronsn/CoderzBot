@@ -5,7 +5,7 @@ import net.freenode.xenomorph.xenomat.CommandResponse
 
 public class bring implements net.freenode.xenomorph.xenomat.botCommand {
 
-    public CommandResponse onCommand(String channel, String sender, String[] params, long commandLastUsedAt) {
+    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt) {
     	ArrayList<String> rt = new ArrayList<String>()
         Boolean success = false
         def drinks = ["kaffee":"einen heißen Kaffee", "tee":"einen frisch gebrühten Tee", "wasser":"ein Glas kühles Wasser", "cola":"ein großes Glas kalte Cola", "limonade":"ein Glas leckere Limonade", "kakao":"eine Tasse heißen, schokoladigen Kakao", "cappucino":"eine Tasse perfekten Cappucino"]
