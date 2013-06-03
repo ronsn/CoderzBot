@@ -1,6 +1,6 @@
 package net.freenode.xenomorph.xenomat;
 
-class CheckSentence {
+public class CheckSentence {
 
     private String wrongSentence;
     private String correctSentence;

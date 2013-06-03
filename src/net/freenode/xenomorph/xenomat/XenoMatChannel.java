@@ -1,14 +1,18 @@
 package net.freenode.xenomorph.xenomat;
 
-public class Channel {
+import org.pircbotx.Channel;
+
+public class XenoMatChannel {
 
     private String _channelName;
     private boolean _channelMuted;
     private long _mutedSince;
+    private Channel _channel;
 
-    public Channel(String name, boolean muted) {
+    public XenoMatChannel(String name, boolean muted, Channel channel) {
         _channelName = name;
         _channelMuted = muted;
+        _channel = channel;
         if (_channelMuted == true) {
             _mutedSince = System.currentTimeMillis();
         } else {
@@ -54,5 +58,12 @@ public class Channel {
      */
     public long getMutedSince() {
         return _mutedSince;
+    }
+
+    /**
+     * @return the _channel
+     */
+    public Channel getChannel() {
+        return _channel;
     }
 }
