@@ -3,14 +3,17 @@ package net.freenode.xenomorph.xenomat;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.jibble.pircbot.IrcException;
+import net.freenode.xenomorph.xenomat.Listeners.GrammarListener;
+import net.freenode.xenomorph.xenomat.Listeners.GroovyListener;
+import org.pircbotx.Channel;
+import org.pircbotx.PircBotX;
 
 public class Main {
 
@@ -47,18 +50,24 @@ public class Main {
                 verbose = true;
             }
             String encoding = properties.getProperty("Encoding", "UTF-8");
+            encoding = encoding.isEmpty() ? "UTF-8" : encoding;
             String server = properties.getProperty("Server");
             String nick = properties.getProperty("Nick");
             String login = properties.getProperty("Login", nick);
             String nickPass = properties.getProperty("NickPass", "");
             String opPass = properties.getProperty("OpPass", "");
             String serverPass = properties.getProperty("ServerPass", "");
-            String port = properties.getProperty("Port", "6667");
+            String _port = properties.getProperty("Port", "6667");
+            Integer port = _port.isEmpty() ? 6667 : Integer.valueOf(_port);// Ternary operator ensures there is a default value set
             String channelList = properties.getProperty("ChannelList", "");
-            Integer banTime = Integer.valueOf(properties.getProperty("BanTime", "10"));
-            Integer answerTime = Integer.valueOf(properties.getProperty("AnswerTime", "10"));
-            Integer grammarFloodLimit = Integer.valueOf(properties.getProperty("GrammarFloodLimit", "6"));
-            Integer grammarFloodTime = Integer.valueOf(properties.getProperty("GrammarFloodTime", "10"));
+            String _banTime = properties.getProperty("BanTime", "10");
+            Integer banTime = _banTime.isEmpty() ? 10 : Integer.valueOf(_banTime);
+            String _answerTime = properties.getProperty("AnswerTime", "10");
+            Integer answerTime = _answerTime.isEmpty() ? 10 : Integer.valueOf(_answerTime);
+            String _grammarFloodLimit = properties.getProperty("GrammarFloodLimit", "6");
+            Integer grammarFloodLimit = _grammarFloodLimit.isEmpty() ? 6 : Integer.valueOf(_grammarFloodLimit);
+            String _grammarFloodTime = properties.getProperty("GrammarFloodTime", "10");
+            Integer grammarFloodTime = _grammarFloodTime.isEmpty() ? 10 : Integer.valueOf(_grammarFloodTime);
             boolean useGrammarFloodLimit = false;
             if (properties.getProperty("UseGrammarFloodLimit", "false").equals("true")) {
                 useGrammarFloodLimit = true;
@@ -78,35 +87,46 @@ public class Main {
             }
 
             // Now start our bot up.
-            XenoMat bot = new XenoMat(nick, opPass, banTime, answerTime, useGrammarFloodLimit, grammarFloodTime, grammarFloodLimit, nickPass, killGhost, login);
+            PircBotX bot = new PircBotX();
 
+            //Add Listeners
+            bot.getListenerManager().addListener(new GroovyListener());
+            GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime);
+            bot.getListenerManager().addListener(gl);
 
-            bot.setAutoNickChange(autoNickChange);
-            bot.setEncoding(encoding);
-
-            // Enable debugging output.
+            //Setup
+            bot.setName(nick);
             bot.setVerbose(verbose);
+            bot.setEncoding(Charset.forName(encoding));
+            bot.setLogin(login);
+            bot.setAutoNickChange(autoNickChange);
 
-            // Connect to the IRC server.
             if (serverPass.isEmpty()) {
-                System.out.println("Trying to connect to " + server + " on port " + port);
-                bot.connect(server, Integer.valueOf(port));
+                bot.connect(server, port);
             } else {
-                System.out.println("Trying to connect to " + server + " on port " + port + " with server password.");
-                bot.connect(server, Integer.valueOf(port), serverPass);
+                bot.connect(server, port, serverPass);
             }
 
             if (!nickPass.isEmpty()) {
-                // Auth to NickServ
                 bot.identify(nickPass);
             }
 
             for (String channel : channels) {
                 bot.joinChannel(channel);
+                Channel c = bot.getChannel(channel);
+                // When connecting to a bouncer with the bot already having OP,
+                // no onOp event will be triggered. By setting Op to ourselfs
+                // it is triggered manually if we already have op, so the bot
+                // knows in which channels it has OP.
+                bot.op(c, bot.getUserBot());
+                // The GrammarListener needs to know the channels we are in.
+                // If connecting to a bouncer no onJoin events will be triggered.
+                // Therefore we need to feed the channels from here.
+                gl.putChannel(channel, new XenoMatChannel(channel, false, c));
             }
 
 
-        } catch (IOException | NumberFormatException | IrcException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
     }

@@ -5,7 +5,7 @@ import net.freenode.xenomorph.xenomat.CommandResponse
 
 public class HelloWorld implements net.freenode.xenomorph.xenomat.botCommand {
 
-    public CommandResponse onCommand(String channel, String sender, String[] params, long commandLastUsedAt) {
+    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt) {
     	ArrayList<String> responsetext = new ArrayList<String>()
         Boolean success = true
         DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyy HH:mm:ss")
