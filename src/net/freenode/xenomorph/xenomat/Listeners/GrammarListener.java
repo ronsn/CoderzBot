@@ -17,7 +17,6 @@ import net.freenode.xenomorph.xenomat.CheckSentence;
 import net.freenode.xenomorph.xenomat.FileTypes.txtFileType;
 import net.freenode.xenomorph.xenomat.LevenshteinDistance;
 import net.freenode.xenomorph.xenomat.XenoMatUser;
-import org.pircbotx.Channel;
 import org.pircbotx.User;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.JoinEvent;

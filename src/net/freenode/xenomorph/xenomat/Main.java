@@ -22,7 +22,7 @@ public class Main {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) throws InstantiationException, IllegalAccessException {
+    public static void main(String[] args) {
 
         try {
             // Read the properties file. If it doesn't exist, quit with error
@@ -86,9 +86,10 @@ public class Main {
                 channels = Arrays.asList(channelList.split("\\s*,\\s*"));
             }
 
-            // Now start our bot up.
+            // Create new configuration
             PircBotX bot = new PircBotX();
-
+            bot.useShutdownHook(true);
+            bot.setAutoReconnect(true);
             //Add Listeners
             bot.getListenerManager().addListener(new GroovyListener());
             GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime);
