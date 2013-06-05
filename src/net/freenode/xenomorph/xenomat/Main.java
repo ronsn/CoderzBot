@@ -10,8 +10,16 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.freenode.xenomorph.xenomat.Listeners.DisconnectListener;
 import net.freenode.xenomorph.xenomat.Listeners.GrammarListener;
 import net.freenode.xenomorph.xenomat.Listeners.GroovyListener;
+import net.freenode.xenomorph.xenomat.jettyHandlers.HelloWorldHandler;
+import net.freenode.xenomorph.xenomat.jettyHandlers.QuitHandler;
+import net.freenode.xenomorph.xenomat.jettyHandlers.SayHandler;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
 
@@ -91,6 +99,7 @@ public class Main {
             bot.useShutdownHook(true);
             bot.setAutoReconnect(true);
             //Add Listeners
+            bot.getListenerManager().addListener(new DisconnectListener());
             bot.getListenerManager().addListener(new GroovyListener());
             GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime);
             bot.getListenerManager().addListener(gl);
@@ -125,7 +134,18 @@ public class Main {
                 // Therefore we need to feed the channels from here.
                 gl.putChannel(channel, new XenoMatChannel(channel, false, c));
             }
-
+            Server httpServer = new Server(8080);
+            ContextHandler sayHandler = new ContextHandler("/say");
+            sayHandler.setHandler(new SayHandler(bot));
+            ContextHandler helloHandler = new ContextHandler("/");
+            helloHandler.setHandler(new HelloWorldHandler(bot));
+            ContextHandler quitHandler = new ContextHandler("/quit");
+            quitHandler.setHandler(new QuitHandler(bot));
+            ContextHandlerCollection contexts = new ContextHandlerCollection();
+            contexts.setHandlers(new Handler[]{helloHandler, quitHandler, sayHandler});
+            httpServer.setHandler(contexts);
+            httpServer.start();
+            httpServer.join();
 
         } catch (Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
