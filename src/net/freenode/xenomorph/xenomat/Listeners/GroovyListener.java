@@ -13,6 +13,7 @@ import net.freenode.xenomorph.xenomat.CommandResponse;
 import net.freenode.xenomorph.xenomat.botCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.groovy.control.CompilationFailedException;
+import org.codehaus.groovy.control.CompilerConfiguration;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.NickChangeEvent;
@@ -129,7 +130,9 @@ public class GroovyListener extends ListenerAdapter {
             if (command.matches("[A-Za-z]+")) {
                 File commandFile = new File("botCommands/" + command + ".groovy");
                 if (commandFile.exists()) {
-                    GroovyClassLoader gcl = new GroovyClassLoader();
+                    CompilerConfiguration cc = new CompilerConfiguration();
+                    cc.setSourceEncoding("UTF-8");
+                    GroovyClassLoader gcl = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(),cc);
                     Class clazz = gcl.parseClass(commandFile);
                     Object aScript = clazz.newInstance();
 
