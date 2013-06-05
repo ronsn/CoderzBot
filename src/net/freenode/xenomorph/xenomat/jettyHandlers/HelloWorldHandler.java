@@ -29,7 +29,7 @@ public class HelloWorldHandler extends AbstractHandler {
         response.getWriter().println("<h2>" + "You are about to administer the bot: " + _bot.getNick() + "</h2>");
         response.getWriter().println("<h2>" + "Want to shut down the server?" + "</h2>");
         response.getWriter().println("<form action='/quit/' method='POST'>");
-        response.getWriter().println("Password: <input type='text' name='pass' />");
+        response.getWriter().println("Password: <input type='password' name='pass' />");
         response.getWriter().println("<input type='submit' value='Shutdown' />");
         response.getWriter().println("</form>");
         response.getWriter().println("<h2>Or maybe do you want to...</h2>");

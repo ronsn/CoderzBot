@@ -64,6 +64,10 @@ public class Main {
             String login = properties.getProperty("Login", nick);
             String nickPass = properties.getProperty("NickPass", "");
             String opPass = properties.getProperty("OpPass", "");
+            if(opPass.isEmpty()){
+                System.out.println("You must set an opPass in bot.properties!");
+                System.exit(0);
+            }
             String serverPass = properties.getProperty("ServerPass", "");
             String _port = properties.getProperty("Port", "6667");
             Integer port = _port.isEmpty() ? 6667 : Integer.valueOf(_port);// Ternary operator ensures there is a default value set
@@ -97,7 +101,8 @@ public class Main {
             // Create new configuration
             PircBotX bot = new PircBotX();
             bot.useShutdownHook(true);
-            bot.setAutoReconnect(true);
+            //bot.setAutoReconnect(true);
+            bot.setSocketTimeout(10 * 60 * 1000);
             //Add Listeners
             bot.getListenerManager().addListener(new DisconnectListener());
             bot.getListenerManager().addListener(new GroovyListener());
@@ -136,11 +141,11 @@ public class Main {
             }
             Server httpServer = new Server(8080);
             ContextHandler sayHandler = new ContextHandler("/say");
-            sayHandler.setHandler(new SayHandler(bot));
+            sayHandler.setHandler(new SayHandler(bot, opPass));
             ContextHandler helloHandler = new ContextHandler("/");
             helloHandler.setHandler(new HelloWorldHandler(bot));
             ContextHandler quitHandler = new ContextHandler("/quit");
-            quitHandler.setHandler(new QuitHandler(bot));
+            quitHandler.setHandler(new QuitHandler(bot, opPass));
             ContextHandlerCollection contexts = new ContextHandlerCollection();
             contexts.setHandlers(new Handler[]{helloHandler, quitHandler, sayHandler});
             httpServer.setHandler(contexts);

@@ -16,9 +16,11 @@ import org.pircbotx.PircBotX;
 public class QuitHandler extends AbstractHandler {
 
     private PircBotX _bot;
+    private String _adminPass;
 
-    public QuitHandler(PircBotX bot) {
+    public QuitHandler(PircBotX bot, String adminPass) {
         _bot = bot;
+        _adminPass = adminPass;
     }
 
     @Override
@@ -27,7 +29,7 @@ public class QuitHandler extends AbstractHandler {
         response.setStatus(HttpServletResponse.SC_OK);
         baseRequest.setHandled(true);
         if (hsr.getParameter("pass") != null) {
-            if (hsr.getParameter("pass").equals("Zejgel94")) {
+            if (hsr.getParameter("pass").equals(_adminPass)) {
                 System.exit(0);
             } else {
                 response.getWriter().println("<h1>" + "Wrong password!" + "</h1>");
