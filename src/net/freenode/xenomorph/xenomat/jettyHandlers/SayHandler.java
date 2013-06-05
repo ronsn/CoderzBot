@@ -31,11 +31,11 @@ public class SayHandler extends AbstractHandler {
             if (hsr.getParameter("pass") != null) {
                 if (hsr.getParameter("pass").equals("Zejgel94")) {
                     _bot.sendMessage(_bot.getChannel(hsr.getParameter("channel")), hsr.getParameter("msg"));
+                    pass = hsr.getParameter("pass");
                 } else {
                     response.getWriter().println("<h1>" + "Wrong password!" + "</h1>");
                     response.getWriter().println("<h2>" + "I've got:" + hsr.getParameter("pass") + "</h2>");
                     response.getWriter().println("<p><a href=\"/\">" + "get back..." + "</a></p>");
-                    pass = hsr.getParameter("pass");
                 }
             } else {
                 response.getWriter().println("<h1>" + "Password was null!" + "</h1>");
