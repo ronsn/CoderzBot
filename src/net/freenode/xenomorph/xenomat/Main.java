@@ -10,8 +10,16 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.freenode.xenomorph.xenomat.Listeners.DisconnectListener;
 import net.freenode.xenomorph.xenomat.Listeners.GrammarListener;
 import net.freenode.xenomorph.xenomat.Listeners.GroovyListener;
+import net.freenode.xenomorph.xenomat.jettyHandlers.HelloWorldHandler;
+import net.freenode.xenomorph.xenomat.jettyHandlers.QuitHandler;
+import net.freenode.xenomorph.xenomat.jettyHandlers.SayHandler;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
 
@@ -22,7 +30,7 @@ public class Main {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) throws InstantiationException, IllegalAccessException {
+    public static void main(String[] args) {
 
         try {
             // Read the properties file. If it doesn't exist, quit with error
@@ -56,6 +64,10 @@ public class Main {
             String login = properties.getProperty("Login", nick);
             String nickPass = properties.getProperty("NickPass", "");
             String opPass = properties.getProperty("OpPass", "");
+            if(opPass.isEmpty()){
+                System.out.println("You must set an opPass in bot.properties!");
+                System.exit(0);
+            }
             String serverPass = properties.getProperty("ServerPass", "");
             String _port = properties.getProperty("Port", "6667");
             Integer port = _port.isEmpty() ? 6667 : Integer.valueOf(_port);// Ternary operator ensures there is a default value set
@@ -86,10 +98,13 @@ public class Main {
                 channels = Arrays.asList(channelList.split("\\s*,\\s*"));
             }
 
-            // Now start our bot up.
+            // Create new configuration
             PircBotX bot = new PircBotX();
-
+            bot.useShutdownHook(true);
+            //bot.setAutoReconnect(true);
+            bot.setSocketTimeout(10 * 60 * 1000);
             //Add Listeners
+            bot.getListenerManager().addListener(new DisconnectListener());
             bot.getListenerManager().addListener(new GroovyListener());
             GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime);
             bot.getListenerManager().addListener(gl);
@@ -124,7 +139,18 @@ public class Main {
                 // Therefore we need to feed the channels from here.
                 gl.putChannel(channel, new XenoMatChannel(channel, false, c));
             }
-
+            Server httpServer = new Server(8080);
+            ContextHandler sayHandler = new ContextHandler("/say");
+            sayHandler.setHandler(new SayHandler(bot, opPass));
+            ContextHandler helloHandler = new ContextHandler("/");
+            helloHandler.setHandler(new HelloWorldHandler(bot));
+            ContextHandler quitHandler = new ContextHandler("/quit");
+            quitHandler.setHandler(new QuitHandler(bot, opPass));
+            ContextHandlerCollection contexts = new ContextHandlerCollection();
+            contexts.setHandlers(new Handler[]{helloHandler, quitHandler, sayHandler});
+            httpServer.setHandler(contexts);
+            httpServer.start();
+            httpServer.join();
 
         } catch (Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
