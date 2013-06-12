@@ -1,10 +1,11 @@
 package net.freenode.xenomorph.xenomat.Listeners;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -23,12 +24,13 @@ import net.freenode.xenomorph.xenomat.botCommand;
 public class PluginListener extends ListenerAdapter {
 
     private ConcurrentHashMap<String, botCommand> plugins;
+    private ConcurrentHashMap<String, String> pluginsChecksum;
     private ConcurrentHashMap<String, HashMap<String, Command>> commandLastUsedAt;
 
     public PluginListener() {
         plugins = new ConcurrentHashMap<>();
+        pluginsChecksum = new ConcurrentHashMap<>();
         commandLastUsedAt = new ConcurrentHashMap<>();
-
     }
 
     @Override
@@ -141,6 +143,16 @@ public class PluginListener extends ListenerAdapter {
         }
     }
 
+    private String fileChecksum(File f) {
+        try {
+            FileInputStream fis = new FileInputStream(f);
+            return org.apache.commons.codec.digest.DigestUtils.md5Hex(fis);
+        } catch (IOException ex) {
+            Logger.getLogger(PluginListener.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return "";
+    }
+
     public CommandResponse runCommand(String command, String[] args, String nick, String login, String hostmask) {
         ArrayList<String> text = new ArrayList<>();
         CommandResponse returnVal;
@@ -150,18 +162,21 @@ public class PluginListener extends ListenerAdapter {
             String classesDirString = StringUtils.replace(System.getProperty("user.dir"), "\\", "/") + "/botCommands";
             File classFile = new File(classesDirString + "/Command" + StringUtils.capitalize(command) + ".class");
             if (classFile.exists()) {
-                // TODO: Check for class file changes, reload if class file was changed
-                if (!plugins.containsKey(command)) {
+                if (!plugins.containsKey(command) || pluginsChecksum.get(command) == null || !fileChecksum(classFile).equals(pluginsChecksum.get(command))) {
                     try {
                         File classesDir = new File(classesDirString);
                         ClassLoader parentLoader = PluginListener.class.getClassLoader();
                         URLClassLoader loader = new URLClassLoader(new URL[]{classesDir.toURI().toURL()}, parentLoader);
                         Class cls = loader.loadClass("Command" + StringUtils.capitalize(command));
                         botCommand postman1 = (botCommand) cls.newInstance();
+                        pluginsChecksum.put(command, fileChecksum(classFile));
                         plugins.put(command, postman1);
                     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | MalformedURLException ex) {
                         if (plugins.containsKey(command)) {
                             plugins.remove(command);
+                        }
+                        if(pluginsChecksum.containsKey(command)){
+                            pluginsChecksum.remove(command);
                         }
                         //Logger.getLogger(PluginListener.class.getName()).log(Level.SEVERE, null, ex);
                     }
