@@ -14,7 +14,7 @@ public class CommandBring implements botCommand {
     ;
 
     @Override
-    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers) {
+    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers, Object savedData) {
         Boolean success = false;
         ArrayList<String> rt = new ArrayList<>();
         HashMap<String, String> drinks = new HashMap<>();
@@ -25,9 +25,9 @@ public class CommandBring implements botCommand {
         drinks.put("kakao", "eine Tasse heißen, schokoladigen Kakao");
         drinks.put("cappucino", "eine Tasse perfekten Cappucino");
 
-        if(params.length == 1){
+        if (params.length == 1) {
             // If no one is mentioned, give stuff to all channel users.
-            params = new String[]{"",params[0]};
+            params = new String[]{"", params[0]};
         }
 
         if (params.length != 2 || !drinks.containsKey(params[1].toLowerCase())) {
@@ -43,14 +43,14 @@ public class CommandBring implements botCommand {
             if (knownUsers != null && !knownUsers.isEmpty() && knownUsers.contains(params[0])) {
                 success = true;
                 rt.add("/me serviert " + params[0] + " " + drinks.get(params[1].toLowerCase()) + ".");
-            }else if(params[0].isEmpty()){
+            } else if (params[0].isEmpty()) {
                 success = true;
                 rt.add("/me serviert allen " + drinks.get(params[1].toLowerCase()) + ".");
-            }else{
-                rt.add("Ich kenne \""+params[0]+"\" nicht, tut mir leid.");
+            } else {
+                rt.add("Ich kenne \"" + params[0] + "\" nicht, tut mir leid.");
             }
         }
-        return new CommandResponse(rt, success);
+        return new CommandResponse(rt, success, null);
     }
 
     private String capitalize(String line) {

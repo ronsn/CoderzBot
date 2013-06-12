@@ -6,5 +6,5 @@ public interface botCommand {
 
     String getCommandName();
 
-    CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt,ArrayList<String> knownUsers);
+    CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers, Object savedData);
 }

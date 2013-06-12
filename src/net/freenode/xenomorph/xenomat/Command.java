@@ -4,6 +4,13 @@ public class Command {
 
     private String _commandName;
     private Long lastUsedAt;
+    private Object _saveData;
+
+    public Command(String commandName, Object saveData){
+        _saveData = saveData;
+        _commandName = commandName;
+        lastUsedAt = System.currentTimeMillis();
+    }
 
     /**
      * @return the _commandName
@@ -11,14 +18,6 @@ public class Command {
     public String getCommandName() {
         return _commandName;
     }
-
-    /**
-     * @param commandName the _commandName to set
-     */
-    public void setCommandName(String commandName) {
-        this._commandName = commandName;
-    }
-
     /**
      * @return the lastUsedAt
      */
@@ -27,9 +26,16 @@ public class Command {
     }
 
     /**
-     * @param lastUsedAt the lastUsedAt to set
+     * @return the _saveData
      */
-    public void setLastUsedAt(Long lastUsedAt) {
-        this.lastUsedAt = lastUsedAt;
+    public Object getSaveData() {
+        return _saveData;
+    }
+
+    /**
+     * @param saveData the _saveData to set
+     */
+    public void setSaveData(Object saveData) {
+        this._saveData = saveData;
     }
 }

@@ -43,7 +43,7 @@ public class CommandAsk implements botCommand {
     ;
 
     @Override
-    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers) {
+    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers, Object savedData) {
         ArrayList<String> responsetext = new ArrayList<>();
         Boolean success = false;
         Integer timeBetweenBeers = 2;
@@ -60,7 +60,7 @@ public class CommandAsk implements botCommand {
             responsetext.add(answers.get(index));
             success = true;
         }
-        return new CommandResponse(responsetext, success);
+        return new CommandResponse(responsetext, success, null);
     }
 
     private String capitalize(String line) {
