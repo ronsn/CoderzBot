@@ -147,8 +147,8 @@ public class PluginListener extends ListenerAdapter {
         returnVal = new CommandResponse(text, false);
         String key = nick + login + hostmask;
         if (command.matches("[A-Za-z]+")) {
-            String classesDirString = StringUtils.replace(Paths.get("").toAbsolutePath().toString(), "\\", "/") + "/botCommands";
-            File classFile = new File(classesDirString + "/Command" + command + ".class");
+            String classesDirString = StringUtils.replace(System.getProperty("user.dir"), "\\", "/") + "/botCommands";
+            File classFile = new File(classesDirString + "/Command" + StringUtils.capitalize(command) + ".class");
             if (classFile.exists()) {
                 // TODO: Check for class file changes, reload if class file was changed
                 if (!plugins.containsKey(command)) {
