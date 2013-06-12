@@ -25,6 +25,7 @@ public class HelloWorldHandler extends AbstractHandler {
         response.setContentType("text/html;charset=utf-8");
         response.setStatus(HttpServletResponse.SC_OK);
         baseRequest.setHandled(true);
+        response.getWriter().println(HtmlHelper.getHeader( _bot.getNick() + " - Administration"));
         response.getWriter().println("<h1>" + "Hello!" + "</h1>");
         response.getWriter().println("<h2>" + "You are about to administer the bot: " + _bot.getNick() + "</h2>");
         response.getWriter().println("<h2>" + "Want to shut down the server?" + "</h2>");
@@ -35,6 +36,8 @@ public class HelloWorldHandler extends AbstractHandler {
         response.getWriter().println("<h2>Or maybe do you want to...</h2>");
         response.getWriter().println("<ul>");
         response.getWriter().println("<li><a href='/say/'>Let the bot say something...</a></li>");
+        response.getWriter().println("<li><a href='/moduleactivation/'>De/Activate the grammar check...</a></li>");
         response.getWriter().println("</ul>");
+        response.getWriter().println(HtmlHelper.getFooter());
     }
 }

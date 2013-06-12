@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
-public class joinPartHandler extends AbstractHandler {
+public class JoinPartHandler extends AbstractHandler {
 
     @Override
     public void handle(String string, Request rqst, HttpServletRequest hsr, HttpServletResponse hsr1) throws IOException, ServletException {

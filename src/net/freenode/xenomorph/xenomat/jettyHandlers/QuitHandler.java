@@ -6,6 +6,8 @@ package net.freenode.xenomorph.xenomat.jettyHandlers;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -28,8 +30,15 @@ public class QuitHandler extends AbstractHandler {
         response.setContentType("text/html;charset=utf-8");
         response.setStatus(HttpServletResponse.SC_OK);
         baseRequest.setHandled(true);
+        response.getWriter().println(HtmlHelper.getHeader( _bot.getNick() + " - Administration"));
         if (hsr.getParameter("pass") != null) {
             if (hsr.getParameter("pass").equals(_adminPass)) {
+                _bot.shutdown(true);
+                try {
+                    this.stop();
+                } catch (Exception ex) {
+                    Logger.getLogger(QuitHandler.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 System.exit(0);
             } else {
                 response.getWriter().println("<h1>" + "Wrong password!" + "</h1>");
@@ -40,5 +49,6 @@ public class QuitHandler extends AbstractHandler {
             response.getWriter().println("<h1>" + "Password was null!" + "</h1>");
             response.getWriter().println("<p><a href=\"/\">" + "get back..." + "</a></p>");
         }
+        response.getWriter().println(HtmlHelper.getFooter());
     }
 }
