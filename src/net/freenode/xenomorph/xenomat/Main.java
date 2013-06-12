@@ -64,7 +64,7 @@ public class Main {
             String server = properties.getProperty("Server");
             String nick = properties.getProperty("Nick");
             String login = properties.getProperty("Login", nick);
-            String nickPass = properties.getProperty("NickPass", null);
+            String nickPass = properties.getProperty("NickPass", "");
             String opPass = properties.getProperty("OpPass", "");
             if (opPass.isEmpty()) {
                 System.out.println("You must set an opPass in bot.properties!");

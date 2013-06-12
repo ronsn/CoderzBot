@@ -14,7 +14,7 @@ public class CommandBeer implements botCommand {
     ;
 
     @Override
-    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers) {
+    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers, Object savedData) {
         ArrayList<String> responsetext = new ArrayList<String>();
         Boolean success = false;
         Integer timeBetweenBeers = 5;
@@ -29,7 +29,7 @@ public class CommandBeer implements botCommand {
             responsetext.add("/me schiebt " + sender + " ein kühles Bier rüber.");
             success = true;
         }
-        return new CommandResponse(responsetext, success);
+        return new CommandResponse(responsetext, success, null);
     }
 
     private String capitalize(String line) {

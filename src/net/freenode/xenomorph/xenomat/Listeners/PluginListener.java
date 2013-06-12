@@ -118,23 +118,19 @@ public class PluginListener extends ListenerAdapter {
                 HashMap<String, Command> cmd = commandLastUsedAt.get(key);
                 if (cmd.get(command) != null) {
                     Command c = cmd.get(command);
-                    c.setLastUsedAt(System.currentTimeMillis());
+                    c.setSaveData(returnValue.getSaveData());
                     cmd.remove(command);
                     cmd.put(command, c);
                     commandLastUsedAt.remove(key);
                     commandLastUsedAt.put(key, cmd);
                 } else {
-                    Command c = new Command();
-                    c.setCommandName(command);
-                    c.setLastUsedAt(System.currentTimeMillis());
+                    Command c = new Command(command, returnValue.getSaveData());
                     cmd.put(command, c);
                     commandLastUsedAt.remove(key);
                     commandLastUsedAt.put(key, cmd);
                 }
             } else {
-                Command c = new Command();
-                c.setCommandName(command);
-                c.setLastUsedAt(System.currentTimeMillis());
+                Command c = new Command(command, returnValue.getSaveData());
                 HashMap<String, Command> cmd = new HashMap<>();
                 cmd.put(command, c);
                 commandLastUsedAt.put(key, cmd);
@@ -171,7 +167,7 @@ public class PluginListener extends ListenerAdapter {
     public CommandResponse runCommand(String command, String[] args, String nick, String login, String hostmask, ArrayList<String> knownUsers) {
         ArrayList<String> text = new ArrayList<>();
         CommandResponse returnVal;
-        returnVal = new CommandResponse(text, false);
+        returnVal = new CommandResponse(text, false, null);
         String key = nick + login + hostmask;
         if (command.matches("[A-Za-z]+")) {
             String classesDirString = StringUtils.replace(System.getProperty("user.dir"), "\\", "/") + "/botCommands";
@@ -183,9 +179,9 @@ public class PluginListener extends ListenerAdapter {
                         ClassLoader parentLoader = PluginListener.class.getClassLoader();
                         URLClassLoader loader = new URLClassLoader(new URL[]{classesDir.toURI().toURL()}, parentLoader);
                         Class cls = loader.loadClass("Command" + StringUtils.capitalize(command));
-                        botCommand postman1 = (botCommand) cls.newInstance();
+                        botCommand bc = (botCommand) cls.newInstance();
                         pluginsChecksum.put(command, fileChecksum(classFile));
-                        plugins.put(command, postman1);
+                        plugins.put(command, bc);
                     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | MalformedURLException ex) {
                         if (plugins.containsKey(command)) {
                             plugins.remove(command);
@@ -208,10 +204,12 @@ public class PluginListener extends ListenerAdapter {
         botCommand hw = plugins.get(command);
         if (hw != null) {
             long cmdLastUsedAt = -1;
+            Object savedData = null;
             if (commandLastUsedAt.get(key) != null && commandLastUsedAt.get(key).get(command) != null && commandLastUsedAt.get(key).get(command).getLastUsedAt() != null) {
                 cmdLastUsedAt = commandLastUsedAt.get(key).get(command).getLastUsedAt();
+                savedData = commandLastUsedAt.get(key).get(command).getSaveData();
             }
-            returnVal = hw.onCommand(nick, args, cmdLastUsedAt, knownUsers);
+            returnVal = hw.onCommand(nick, args, cmdLastUsedAt, knownUsers, savedData);
         }
         return returnVal;
     }
