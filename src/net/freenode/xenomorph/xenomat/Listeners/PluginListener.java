@@ -20,6 +20,9 @@ import org.pircbotx.hooks.events.NickChangeEvent;
 import org.pircbotx.hooks.events.PrivateMessageEvent;
 import net.freenode.xenomorph.xenomat.CommandResponse;
 import net.freenode.xenomorph.xenomat.botCommand;
+import org.pircbotx.Channel;
+import org.pircbotx.PircBotX;
+import org.pircbotx.User;
 
 public class PluginListener extends ListenerAdapter {
 
@@ -54,7 +57,7 @@ public class PluginListener extends ListenerAdapter {
     @Override
     public void onMessage(MessageEvent event) {
         if (event.getMessage().trim().startsWith("!") && !event.getMessage().trim().startsWith("!bot") && !event.getMessage().trim().startsWith("!help")) {
-            CommandResponse crp = handleCommand(event.getMessage(), event.getUser().getNick(), event.getUser().getLogin(), event.getUser().getHostmask());
+            CommandResponse crp = handleCommand(event.getMessage(), event.getUser().getNick(), event.getUser().getLogin(), event.getUser().getHostmask(), event.getBot());
             for (String response : crp.getResponseText()) {
                 if (response.startsWith("/me")) {
                     event.getChannel().send().action(StringUtils.stripStart(response, "/me").trim());
@@ -73,14 +76,26 @@ public class PluginListener extends ListenerAdapter {
     public void onPrivateMessage(PrivateMessageEvent event) {
         // Built-in commands MUST start with !bot or !help, everything else is considered to be a groovy command.
         if (event.getMessage().trim().startsWith("!") && !event.getMessage().trim().startsWith("!bot") && !event.getMessage().trim().startsWith("!help")) {
-            CommandResponse crp = handleCommand(event.getMessage(), event.getUser().getNick(), event.getUser().getLogin(), event.getUser().getHostmask());
+            CommandResponse crp = handleCommand(event.getMessage(), event.getUser().getNick(), event.getUser().getLogin(), event.getUser().getHostmask(), event.getBot());
             for (String response : crp.getResponseText()) {
                 event.respond(response);
             }
         }
     }
 
-    private CommandResponse handleCommand(String message, String nick, String login, String hostmask) {
+    protected ArrayList<String> getAllUsers(PircBotX bot) {
+        ArrayList<String> returnVal = new ArrayList<>();
+        for (Channel c : bot.getUserBot().getChannels()) {
+            for (User u : c.getUsers()) {
+                if (!returnVal.contains(u.getNick())) {
+                    returnVal.add(u.getNick());
+                }
+            }
+        }
+        return returnVal;
+    }
+
+    private CommandResponse handleCommand(String message, String nick, String login, String hostmask, PircBotX bot) {
         String[] cmdString = message.trim().split("\\s");
         // The command is always the first one, without !
         String command = StringUtils.stripStart(cmdString[0], "!");
@@ -96,7 +111,7 @@ public class PluginListener extends ListenerAdapter {
                 }
             }
         }
-        CommandResponse returnValue = runCommand(command, args, nick, login, hostmask);
+        CommandResponse returnValue = runCommand(command, args, nick, login, hostmask, getAllUsers(bot));
         if (returnValue.getCommandSuccesfull() == true) {
             String key = nick + login + hostmask;
             if (commandLastUsedAt.get(key) != null) {
@@ -153,7 +168,7 @@ public class PluginListener extends ListenerAdapter {
         return "";
     }
 
-    public CommandResponse runCommand(String command, String[] args, String nick, String login, String hostmask) {
+    public CommandResponse runCommand(String command, String[] args, String nick, String login, String hostmask, ArrayList<String> knownUsers) {
         ArrayList<String> text = new ArrayList<>();
         CommandResponse returnVal;
         returnVal = new CommandResponse(text, false);
@@ -175,7 +190,7 @@ public class PluginListener extends ListenerAdapter {
                         if (plugins.containsKey(command)) {
                             plugins.remove(command);
                         }
-                        if(pluginsChecksum.containsKey(command)){
+                        if (pluginsChecksum.containsKey(command)) {
                             pluginsChecksum.remove(command);
                         }
                         //Logger.getLogger(PluginListener.class.getName()).log(Level.SEVERE, null, ex);
@@ -196,7 +211,7 @@ public class PluginListener extends ListenerAdapter {
             if (commandLastUsedAt.get(key) != null && commandLastUsedAt.get(key).get(command) != null && commandLastUsedAt.get(key).get(command).getLastUsedAt() != null) {
                 cmdLastUsedAt = commandLastUsedAt.get(key).get(command).getLastUsedAt();
             }
-            returnVal = hw.onCommand(nick, args, cmdLastUsedAt);
+            returnVal = hw.onCommand(nick, args, cmdLastUsedAt, knownUsers);
         }
         return returnVal;
     }
