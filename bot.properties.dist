@@ -23,6 +23,8 @@ AutoNickChange=true
 Encoding=UTF-8
 # boolean Verbose: Should debug loggin be enabled?
 Verbose=true
+# Should the GrammarCheck be used at all?
+GrammarCheckActive=true
 # Int GrammarFloodLimit: If a user exceeds this limit while on grammar trial,
 # the channel will be muted
 GrammarFloodLimit=3
@@ -33,3 +35,9 @@ UseGrammarFloodLimit=true
 # Boolean KillGhost: If our nick is changed, try to kill ghost an regain nick
 # Be careful with this option, do not turn on unless you understand what it does!
 KillGhost=false
+# This section holds the MySQL access data. It is mandatory.
+MySQLHost=
+MySQLPort=
+MySQLDB=
+MySQLUser=
+MySQLPass=

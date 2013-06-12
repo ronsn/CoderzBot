@@ -33,6 +33,7 @@ public class SayHandler extends AbstractHandler {
         String channel = "";
         String user = "";
         String targetType = "";
+        response.getWriter().println(HtmlHelper.getHeader(_bot.getNick() + " - Administration"));
         if (hsr.getParameter("mode") != null && hsr.getParameter("mode").equals("say") && hsr.getParameter("msg") != null && hsr.getParameter("sayTargetType") != null) {
             targetType = hsr.getParameter("sayTargetType");
             if (hsr.getParameter("pass") != null) {
@@ -40,7 +41,7 @@ public class SayHandler extends AbstractHandler {
                     pass = hsr.getParameter("pass");
                     if (targetType.equals("channel")) {
                         if (hsr.getParameter("channel") != null && !hsr.getParameter("channel").isEmpty() && !hsr.getParameter("msg").isEmpty()) {
-                            _bot.sendMessage(_bot.getChannel(hsr.getParameter("channel")), hsr.getParameter("msg"));
+                            _bot.sendIRC().message(hsr.getParameter("channel"), hsr.getParameter("msg"));
                             channel = hsr.getParameter("channel");
                             response.getWriter().println("<h1>" + "Send \"" + hsr.getParameter("msg") + "\" to " + channel + "</h1>");
                         } else {
@@ -48,7 +49,7 @@ public class SayHandler extends AbstractHandler {
                         }
                     } else if (targetType.equals("user")) {
                         if (hsr.getParameter("user") != null && !hsr.getParameter("user").isEmpty() && !hsr.getParameter("msg").isEmpty()) {
-                            _bot.sendMessage(_bot.getUser(hsr.getParameter("user")), hsr.getParameter("msg"));
+                            _bot.sendIRC().message(hsr.getParameter("user"), hsr.getParameter("msg"));
                             user = hsr.getParameter("user");
                             response.getWriter().println("<h1>" + "Send \"" + hsr.getParameter("msg") + "\" to " + user + "</h1>");
                         } else {
@@ -70,18 +71,16 @@ public class SayHandler extends AbstractHandler {
         response.getWriter().println("Password: <input type='password' name='pass' value='" + pass + "' /><br />");
         response.getWriter().println("Message: <input type='text' name='msg' /><br />");
         response.getWriter().println("<input type='radio' name='sayTargetType' value='channel'" + ((!targetType.isEmpty() && targetType.equals("channel")) ? " checked='checked'" : "") + " />Channel: <select name='channel' size='1'>");
-        for (Channel chan : _bot.getChannels()) {
+        for (Channel chan : _bot.getUserBot().getChannels()) {
             response.getWriter().println("<option" + ((!channel.isEmpty() && channel.equals(chan.getName())) ? " selected='selected'" : "") + ">" + chan.getName() + "</option>");
         }
         response.getWriter().println("</select><br />");
         response.getWriter().println("<p>or</p>");
-        response.getWriter().println("<input type='radio' name='sayTargetType' value='user'" + ((!targetType.isEmpty() && targetType.equals("user")) ? " checked='checked'" : "") + " />User: <select name='user' size='1'>");
-        for (User u : _bot.getUsers()) {
-            response.getWriter().println("<option" + ((!user.isEmpty() && user.equals(u.getNick())) ? " selected='selected'" : "") + ">" + u.getNick() + "</option>");
-        }
-        response.getWriter().println("</select><br />");
+        response.getWriter().println("<input type='radio' name='sayTargetType' value='user'" + ((!targetType.isEmpty() && targetType.equals("user")) ? " checked='checked'" : "") + " />");
+        response.getWriter().println("User: <input type='text' name='user' value='" + (!user.isEmpty() ? user.trim() : "") + "' /><br />");
         response.getWriter().println("<input type='submit' value='Say it!' />");
         response.getWriter().println("</form>");
         response.getWriter().println("<p><a href='/'>" + "Go back home..." + "</a></p>");
+        response.getWriter().println(HtmlHelper.getFooter());
     }
 }
