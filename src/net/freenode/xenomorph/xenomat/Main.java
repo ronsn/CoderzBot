@@ -109,8 +109,7 @@ public class Main {
             GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime, grammarCheckActive);
             Configuration configuration = new XenoConf.XenoBuilder()
                     .addAutoJoinChannels(channels) // MUST be set first, since all methods that are not overwritten do return an instance of Builder, not XenoBuilder!!!
-                    .setName("Xeno|Testbot") //Set the nick of the bot. CHANGE IN YOUR CODE
-                    .setLogin("LQ") //login part of hostmask, eg name:login@host
+                    .setName(nick) //Set the nick of the bot. CHANGE IN YOUR CODE
                     .setAutoNickChange(true) //Automatically change nick when the current one is in use
                     .setCapEnabled(true) //Enable CAP features
                     .addListener(new DisconnectListener()) //This class is a listener, so add it to the bots known listeners
