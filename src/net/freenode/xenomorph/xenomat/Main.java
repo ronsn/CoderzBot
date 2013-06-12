@@ -12,15 +12,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.freenode.xenomorph.xenomat.Listeners.DisconnectListener;
 import net.freenode.xenomorph.xenomat.Listeners.GrammarListener;
-import net.freenode.xenomorph.xenomat.Listeners.GroovyListener;
+import net.freenode.xenomorph.xenomat.Listeners.PluginListener;
 import net.freenode.xenomorph.xenomat.jettyHandlers.HelloWorldHandler;
+import net.freenode.xenomorph.xenomat.jettyHandlers.ModuleActivationHandler;
 import net.freenode.xenomorph.xenomat.jettyHandlers.QuitHandler;
 import net.freenode.xenomorph.xenomat.jettyHandlers.SayHandler;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.pircbotx.Channel;
+import org.pircbotx.Configuration;
+import org.pircbotx.MultiBotManager;
 import org.pircbotx.PircBotX;
 
 public class Main {
@@ -62,13 +64,13 @@ public class Main {
             String server = properties.getProperty("Server");
             String nick = properties.getProperty("Nick");
             String login = properties.getProperty("Login", nick);
-            String nickPass = properties.getProperty("NickPass", "");
+            String nickPass = properties.getProperty("NickPass", null);
             String opPass = properties.getProperty("OpPass", "");
-            if(opPass.isEmpty()){
+            if (opPass.isEmpty()) {
                 System.out.println("You must set an opPass in bot.properties!");
                 System.exit(0);
             }
-            String serverPass = properties.getProperty("ServerPass", "");
+            String serverPass = properties.getProperty("ServerPass", null);
             String _port = properties.getProperty("Port", "6667");
             Integer port = _port.isEmpty() ? 6667 : Integer.valueOf(_port);// Ternary operator ensures there is a default value set
             String channelList = properties.getProperty("ChannelList", "");
@@ -84,6 +86,10 @@ public class Main {
             if (properties.getProperty("UseGrammarFloodLimit", "false").equals("true")) {
                 useGrammarFloodLimit = true;
             }
+            boolean grammarCheckActive = false;
+            if (properties.getProperty("GrammarCheckActive", "false").equals("true")) {
+                grammarCheckActive = true;
+            }
             boolean killGhost = false;
             if (properties.getProperty("KillGhost", "false").equals("true")) {
                 killGhost = true;
@@ -98,48 +104,37 @@ public class Main {
                 channels = Arrays.asList(channelList.split("\\s*,\\s*"));
             }
 
-            // Create new configuration
-            PircBotX bot = new PircBotX();
-            bot.useShutdownHook(true);
-            //bot.setAutoReconnect(true);
-            bot.setSocketTimeout(10 * 60 * 1000);
-            //Add Listeners
-            bot.getListenerManager().addListener(new DisconnectListener());
-            bot.getListenerManager().addListener(new GroovyListener());
-            GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime);
-            bot.getListenerManager().addListener(gl);
 
-            //Setup
-            bot.setName(nick);
-            bot.setVerbose(verbose);
-            bot.setEncoding(Charset.forName(encoding));
-            bot.setLogin(login);
-            bot.setAutoNickChange(autoNickChange);
+            //Setup this bot
+            GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime, grammarCheckActive);
+            Configuration configuration = new XenoConf.XenoBuilder()
+                    .addAutoJoinChannels(channels) // MUST be set first, since all methods that are not overwritten do return an instance of Builder, not XenoBuilder!!!
+                    .setName("Xeno|Testbot") //Set the nick of the bot. CHANGE IN YOUR CODE
+                    .setLogin("LQ") //login part of hostmask, eg name:login@host
+                    .setAutoNickChange(true) //Automatically change nick when the current one is in use
+                    .setCapEnabled(true) //Enable CAP features
+                    .addListener(new DisconnectListener()) //This class is a listener, so add it to the bots known listeners
+                    .addListener(new PluginListener()) //This class is a listener, so add it to the bots known listeners
+                    .addListener(gl) //This class is a listener, so add it to the bots known listeners
+                    .setServerHostname(server)
+                    .setLogin(login)
+                    .setNickservPassword(nickPass)
+                    .setAutoNickChange(autoNickChange)
+                    .setServerPassword(serverPass)
+                    .setServerPort(port)
+                    .setEncoding(Charset.forName(encoding))
+                    .buildConfiguration();
 
-            if (serverPass.isEmpty()) {
-                bot.connect(server, port);
-            } else {
-                bot.connect(server, port, serverPass);
-            }
+            PircBotX bot = new PircBotX(configuration);
 
-            if (!nickPass.isEmpty()) {
-                bot.identify(nickPass);
-            }
 
-            for (String channel : channels) {
-                bot.joinChannel(channel);
-                Channel c = bot.getChannel(channel);
-                // When connecting to a bouncer with the bot already having OP,
-                // no onOp event will be triggered. By setting Op to ourselfs
-                // it is triggered manually if we already have op, so the bot
-                // knows in which channels it has OP.
-                bot.op(c, bot.getUserBot());
-                // The GrammarListener needs to know the channels we are in.
-                // If connecting to a bouncer no onJoin events will be triggered.
-                // Therefore we need to feed the channels from here.
-                gl.putChannel(channel, new XenoMatChannel(channel, false, c));
-            }
+            MultiBotManager mbm = new MultiBotManager();
+            mbm.addBot(bot);
+            mbm.start();
+
             Server httpServer = new Server(8080);
+            ContextHandler moduleActivationHandler = new ContextHandler("/moduleactivation");
+            moduleActivationHandler.setHandler(new ModuleActivationHandler(bot, gl, opPass));
             ContextHandler sayHandler = new ContextHandler("/say");
             sayHandler.setHandler(new SayHandler(bot, opPass));
             ContextHandler helloHandler = new ContextHandler("/");
@@ -147,7 +142,7 @@ public class Main {
             ContextHandler quitHandler = new ContextHandler("/quit");
             quitHandler.setHandler(new QuitHandler(bot, opPass));
             ContextHandlerCollection contexts = new ContextHandlerCollection();
-            contexts.setHandlers(new Handler[]{helloHandler, quitHandler, sayHandler});
+            contexts.setHandlers(new Handler[]{moduleActivationHandler, helloHandler, quitHandler, sayHandler});
             httpServer.setHandler(contexts);
             httpServer.start();
             httpServer.join();

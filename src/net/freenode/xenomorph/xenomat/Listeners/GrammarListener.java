@@ -17,6 +17,7 @@ import net.freenode.xenomorph.xenomat.CheckSentence;
 import net.freenode.xenomorph.xenomat.FileTypes.txtFileType;
 import net.freenode.xenomorph.xenomat.LevenshteinDistance;
 import net.freenode.xenomorph.xenomat.XenoMatUser;
+import org.pircbotx.Channel;
 import org.pircbotx.User;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.JoinEvent;
@@ -24,13 +25,12 @@ import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PrivateMessageEvent;
 
 /**
- * The GrammarListener waits for new users to join a channel.
- * Every time it detects a new user it checks if he is on the whithelist.
- * If not, the user will be confronted with a sentence containing errors.
- * The user then has to reply with the corrected sentence.
- * If he fails to do so within a configured time, he will be banned for a
- * configured time.
- * If he answers correct, he will be voiced.
+ * The GrammarListener waits for new users to join a channel. Every time it
+ * detects a new user it checks if he is on the whithelist. If not, the user
+ * will be confronted with a sentence containing errors. The user then has to
+ * reply with the corrected sentence. If he fails to do so within a configured
+ * time, he will be banned for a configured time. If he answers correct, he will
+ * be voiced.
  */
 public class GrammarListener extends ListenerAdapter {
 
@@ -75,17 +75,23 @@ public class GrammarListener extends ListenerAdapter {
     String botNickFromConfig;
     Integer _grammarFloodLimit;
     Integer _grammarFloodTime;
+    private boolean _grammarCheckActive;
 
     /**
      *
      * @param botNickFromCfg The nick the bot is configured to use
      * @param answerTime The time a user has to reply with the correct sentence
-     * @param banTime The time a user will be banned if he fails the grammar test
-     * @param useGrammarFloodLimit If true, a user who hasn't answered the grammar question may only write a configured amount of messages in the channel before the channel gets moderated
-     * @param grammarFloodLimit How many messages a user who hasn't answered the grammar question is allowed to write before the channel is muted
-     * @param grammarFloodTime  The time a channel will be set moderated if a user writes in the channel instead of answering his grammar question
+     * @param banTime The time a user will be banned if he fails the grammar
+     * test
+     * @param useGrammarFloodLimit If true, a user who hasn't answered the
+     * grammar question may only write a configured amount of messages in the
+     * channel before the channel gets moderated
+     * @param grammarFloodLimit How many messages a user who hasn't answered the
+     * grammar question is allowed to write before the channel is muted
+     * @param grammarFloodTime The time a channel will be set moderated if a
+     * user writes in the channel instead of answering his grammar question
      */
-    public GrammarListener(String botNickFromCfg, Integer answerTime, Integer banTime, Boolean useGrammarFloodLimit, Integer grammarFloodLimit, Integer grammarFloodTime) {
+    public GrammarListener(String botNickFromCfg, Integer answerTime, Integer banTime, Boolean useGrammarFloodLimit, Integer grammarFloodLimit, Integer grammarFloodTime, boolean grammarCheckActive) {
         _grammarFloodTime = grammarFloodTime;
         _grammarFloodLimit = grammarFloodLimit;
         _useGrammarFloodLimit = useGrammarFloodLimit;
@@ -99,29 +105,30 @@ public class GrammarListener extends ListenerAdapter {
         // initialize Random generator
         randomGenerator = new Random();
         botNickFromConfig = botNickFromCfg;
+        _grammarCheckActive = grammarCheckActive;
         startTimers();
     }
 
     @Override
     public void onJoin(JoinEvent event) {
-        if (!sentences.isEmpty() && event.getChannel().isOp(event.getBot().getUser(event.getBot().getNick())) && !event.getUser().getNick().equals(event.getBot().getName()) && !grammarWhitelist.contains(event.getUser().getNick())) {
+        if (_grammarCheckActive && !sentences.isEmpty() && event.getChannel().isOp(event.getBot().getUserBot()) && !event.getUser().getNick().equals(event.getBot().getNick()) && !grammarWhitelist.contains(event.getUser().getNick())) {
             CheckSentence s = randomSentence();
             XenoMatUser u = new XenoMatUser(event.getUser().getNick(), event.getUser().getLogin(), event.getUser().getHostmask(), event.getChannel().getName(), System.currentTimeMillis(), event);
             u.setCheckSentence(s);
             pendingGrammarUsers.put(event.getUser().getNick() + event.getUser().getLogin() + event.getUser().getHostmask(), u);
             Integer errorCount = LevenshteinDistance.computeDistance(s.getCorrectSentence(), s.getWrongSentence());
             if (errorCount == 1) {
-                event.getBot().sendMessage(u.getUser(), "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei den enthaltenen Fehler.");
+                event.getBot().sendIRC().message(u.getUser().getNick(), "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei den enthaltenen Fehler.");
             } else {
-                event.getBot().sendMessage(u.getUser(), "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei die " + String.valueOf(errorCount) + " enthaltenen Fehler.");
+                event.getBot().sendIRC().message(u.getUser().getNick(), "Hallo. Um Spam zu vermeiden schreibe bitte den folgenden Satz ab, korrigiere dabei die " + String.valueOf(errorCount) + " enthaltenen Fehler.");
             }
-            event.getBot().sendMessage(u.getUser(), "Wenn Du nicht innerhalb von " + String.valueOf(_answerTime) + " Minuten mit dem korrekten Satz antwortest, muss ich Dich leider kicken.");
-            event.getBot().sendMessage(u.getUser(), "Ausserdem bekommst Du dann einen Bann von " + String.valueOf(_banTime) + " Minuten.");
-            event.getBot().sendMessage(u.getUser(), "Bitte antworte mit dem kompletten, korrigierten Satz.");
-            event.getBot().sendMessage(u.getUser(), "Der zu korrigierende Satz lautet:");
-            event.getBot().sendMessage(u.getUser(), s.getWrongSentence());
-        } else if (grammarWhitelist.contains(event.getUser().getNick()) && event.getChannel().isOp(event.getBot().getUser(event.getBot().getNick())) && !event.getUser().getNick().equals(event.getBot().getName())) {
-            event.getBot().voice(event.getChannel(), event.getUser());
+            event.getBot().sendIRC().message(u.getUser().getNick(), "Wenn Du nicht innerhalb von " + String.valueOf(_answerTime) + " Minuten mit dem korrekten Satz antwortest, muss ich Dich leider kicken.");
+            event.getBot().sendIRC().message(u.getUser().getNick(), "Ausserdem bekommst Du dann einen Bann von " + String.valueOf(_banTime) + " Minuten.");
+            event.getBot().sendIRC().message(u.getUser().getNick(), "Bitte antworte mit dem kompletten, korrigierten Satz.");
+            event.getBot().sendIRC().message(u.getUser().getNick(), "Der zu korrigierende Satz lautet:");
+            event.getBot().sendIRC().message(u.getUser().getNick(), s.getWrongSentence());
+        } else if (grammarWhitelist.contains(event.getUser().getNick()) && event.getChannel().isOp(event.getBot().getUserBot()) && !event.getUser().getNick().equals(event.getBot().getNick())) {
+            event.getChannel().send().op(event.getUser());
         } else if (event.getBot().getNick().equals(event.getUser().getNick())) {
             channels.put(event.getChannel().getName(), new XenoMatChannel(event.getChannel().getName(), false, event.getChannel()));
         }
@@ -133,8 +140,8 @@ public class GrammarListener extends ListenerAdapter {
             if (channels.containsKey(event.getChannel().getName())) {
                 if (!channels.get(event.getChannel().getName()).getChannelMuted()) {
                     if (pendingGrammarUsers.get(key).getGrammarFloodLimitCount() >= _grammarFloodLimit) {
-                        event.getChannel().getBot().sendMessage(event.getChannel().getName(), "Der Channel wird ab jetzt für " + _grammarFloodTime + " Minuten auf moderiert gesetzt, da " + event.getUser().getNick() + " im Channel schreibt, statt die Grammatikfrage zu beantworten.");
-                        event.getChannel().getBot().setModerated(event.getChannel());
+                        event.getBot().sendIRC().message(event.getChannel().getName(), "Der Channel wird ab jetzt für " + _grammarFloodTime + " Minuten auf moderiert gesetzt, da " + event.getUser().getNick() + " im Channel schreibt, statt die Grammatikfrage zu beantworten.");
+                        event.getChannel().send().setModerated(event.getChannel());
                         XenoMatChannel chan = new XenoMatChannel(event.getChannel().getName(), true, event.getChannel());
                         channels.put(event.getChannel().getName(), chan);
                         pendingGrammarUsers.get(key).setGrammarFloodLimitCount(0);
@@ -166,7 +173,7 @@ public class GrammarListener extends ListenerAdapter {
             if (dist == 0) {
                 pendingGrammarUsers.remove(key);
                 event.respond("Du bist authentifiziert, Danke.");
-                event.getBot().voice(grammarUser.getjEv().getChannel(), event.getUser());
+                event.getBot().getUserChannelDao().getChannel(grammarUser.getjEv().getChannel().getName()).send().voice(event.getUser());
             } else {
                 long millis = (_answerTime * 60 * 1000 - (System.currentTimeMillis() - grammarUser.getPendingSince()));
                 String tRemaining = String.format("%d Minuten, %d Sekunden",
@@ -244,14 +251,14 @@ public class GrammarListener extends ListenerAdapter {
                         // If not, throw that stuff away
                         if (pendingGrammarUsers.get(key).getjEv() != null) {
                             JoinEvent e = pendingGrammarUsers.get(key).getjEv();
-                            if (e.getChannel().isOp(e.getBot().getUser(e.getBot().getNick())) == true) {
+                            if (isGrammarCheckActive() && e.getChannel().isOp(e.getBot().getUserBot())) {
                                 User u = pendingGrammarUsers.get(key).getUser();
-                                u.sendMessage("<<Du hast den Anti-Spammer Test leider nicht bestanden.>>");
-                                u.sendMessage("Du wirst für " + _banTime + " Minuten vom Channel " + e.getChannel().getName() + " ausgeschlossen.");
+                                u.getBot().sendIRC().message(u.getNick(), "<<Du hast den Anti-Spammer Test leider nicht bestanden.>>");
+                                u.getBot().sendIRC().message(u.getNick(), "Du wirst für " + _banTime + " Minuten vom Channel " + e.getChannel().getName() + " ausgeschlossen.");
                                 String banmask = "*!*@" + u.getHostmask();
-                                pendingGrammarUsers.get(key).getBot().ban(e.getChannel(), banmask);
+                                pendingGrammarUsers.get(key).getBot().getUserChannelDao().getChannel(e.getChannel().getName()).send().ban(banmask);
                                 pendingBans.put(banmask, new Ban(banmask, e.getChannel(), _banTime * 60 * 1000, System.currentTimeMillis(), pendingGrammarUsers.get(key).getUser()));
-                                pendingGrammarUsers.get(key).getBot().kick(e.getChannel(), u, "Du wurdest für " + _banTime + " Minuten verbannt, weil du den Test nicht bestanden hast.");
+                                pendingGrammarUsers.get(key).getBot().getUserChannelDao().getChannel(e.getChannel().getName()).send().kick(u, "Du wirst für " + _banTime + " Minuten verbannt, weil du den Test nicht bestanden hast.");
                             }
                         }
                         pendingGrammarUsers.remove(key);
@@ -266,8 +273,8 @@ public class GrammarListener extends ListenerAdapter {
                 for (String key : pendingBans.keySet()) {
                     if (System.currentTimeMillis() - pendingBans.get(key).getTimeOfBan() >= pendingBans.get(key).getBanDuration()) {
 
-                        if (pendingBans.get(key).getChannel().isOp(pendingBans.get(key).getUser().getBot().getUser(pendingBans.get(key).getUser().getBot().getNick())) == true) {
-                            pendingBans.get(key).getUser().getBot().unBan(pendingBans.get(key).getChannel(), pendingBans.get(key).getBanEntry());
+                        if (pendingBans.get(key).getChannel().isOp(pendingBans.get(key).getUser().getBot().getUserBot())) {
+                            pendingBans.get(key).getUser().getBot().getUserChannelDao().getChannel(pendingBans.get(key).getChannel().getName()).send().unBan(pendingBans.get(key).getChannel(), pendingBans.get(key).getBanEntry());
                             pendingBans.remove(key);
                         }
                     }
@@ -281,7 +288,7 @@ public class GrammarListener extends ListenerAdapter {
                 for (String key : channels.keySet()) {
                     if (channels.get(key).getMutedSince() > 0 && System.currentTimeMillis() - channels.get(key).getMutedSince() >= _grammarFloodTime * 60 * 1000) {
                         if (channels.get(key).getChannel().isOp(channels.get(key).getChannel().getBot().getUserBot())) {
-                            channels.get(key).getChannel().getBot().removeModerated(channels.get(key).getChannel());
+                            channels.get(key).getChannel().getBot().getUserChannelDao().getChannel(channels.get(key).getChannel().getName()).send().removeModerated(channels.get(key).getChannel());
                             channels.remove(key);
                             XenoMatChannel chan = new XenoMatChannel(key, false, channels.get(key).getChannel());
                             channels.put(key, chan);
@@ -294,5 +301,19 @@ public class GrammarListener extends ListenerAdapter {
 
     public void putChannel(String channel, XenoMatChannel xenoMatChannel) {
         channels.put(channel, xenoMatChannel);
+    }
+
+    /**
+     * @return the _grammarCheckActive
+     */
+    public boolean isGrammarCheckActive() {
+        return _grammarCheckActive;
+    }
+
+    /**
+     * @param grammarCheckActive the _grammarCheckActive to set
+     */
+    public void setGrammarCheckActive(boolean grammarCheckActive) {
+        this._grammarCheckActive = grammarCheckActive;
     }
 }

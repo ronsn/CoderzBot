@@ -1,30 +1,34 @@
 package net.freenode.xenomorph.xenomat.Listeners;
 
-import groovy.lang.GroovyClassLoader;
 import java.io.File;
-import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.freenode.xenomorph.xenomat.Command;
-import net.freenode.xenomorph.xenomat.CommandResponse;
-import net.freenode.xenomorph.xenomat.botCommand;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.groovy.control.CompilationFailedException;
-import org.codehaus.groovy.control.CompilerConfiguration;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.NickChangeEvent;
 import org.pircbotx.hooks.events.PrivateMessageEvent;
+import net.freenode.xenomorph.xenomat.CommandResponse;
+import net.freenode.xenomorph.xenomat.botCommand;
 
-public class GroovyListener extends ListenerAdapter {
+public class PluginListener extends ListenerAdapter {
 
+    private ConcurrentHashMap<String, botCommand> plugins;
     private ConcurrentHashMap<String, HashMap<String, Command>> commandLastUsedAt;
 
-    public GroovyListener() {
+    public PluginListener() {
+        plugins = new ConcurrentHashMap<>();
         commandLastUsedAt = new ConcurrentHashMap<>();
+
     }
 
     @Override
@@ -46,17 +50,17 @@ public class GroovyListener extends ListenerAdapter {
     }
 
     @Override
-    public void onMessage(MessageEvent event) throws Exception {
+    public void onMessage(MessageEvent event) {
         if (event.getMessage().trim().startsWith("!") && !event.getMessage().trim().startsWith("!bot") && !event.getMessage().trim().startsWith("!help")) {
             CommandResponse crp = handleCommand(event.getMessage(), event.getUser().getNick(), event.getUser().getLogin(), event.getUser().getHostmask());
             for (String response : crp.getResponseText()) {
                 if (response.startsWith("/me")) {
-                    event.getBot().sendAction(event.getChannel(), StringUtils.stripStart(response, "/me").trim());
+                    event.getChannel().send().action(StringUtils.stripStart(response, "/me").trim());
                 } else {
                     if (crp.getCommandSuccesfull()) {
                         event.respond(response);
                     } else {
-                        event.getBot().sendMessage(event.getUser(), response);
+                        event.getUser().send().message(response);
                     }
                 }
             }
@@ -64,7 +68,7 @@ public class GroovyListener extends ListenerAdapter {
     }
 
     @Override
-    public void onPrivateMessage(PrivateMessageEvent event) throws Exception {
+    public void onPrivateMessage(PrivateMessageEvent event) {
         // Built-in commands MUST start with !bot or !help, everything else is considered to be a groovy command.
         if (event.getMessage().trim().startsWith("!") && !event.getMessage().trim().startsWith("!bot") && !event.getMessage().trim().startsWith("!help")) {
             CommandResponse crp = handleCommand(event.getMessage(), event.getUser().getNick(), event.getUser().getLogin(), event.getUser().getHostmask());
@@ -122,33 +126,62 @@ public class GroovyListener extends ListenerAdapter {
         return returnValue;
     }
 
+    public static void dumpClasspath(ClassLoader loader) {
+        System.out.println("Classloader " + loader + ":");
+
+        if (loader instanceof URLClassLoader) {
+            URLClassLoader ucl = (URLClassLoader) loader;
+            System.out.println("\t" + Arrays.toString(ucl.getURLs()));
+        } else {
+            System.out.println("\t(cannot display components as not a URLClassLoader)");
+        }
+
+        if (loader.getParent() != null) {
+            dumpClasspath(loader.getParent());
+        }
+    }
+
     public CommandResponse runCommand(String command, String[] args, String nick, String login, String hostmask) {
-        ArrayList<String> text = new ArrayList<String>();
-        CommandResponse returnVal = new CommandResponse(text, false);
+        ArrayList<String> text = new ArrayList<>();
+        CommandResponse returnVal;
+        returnVal = new CommandResponse(text, false);
         String key = nick + login + hostmask;
-        try {
-            if (command.matches("[A-Za-z]+")) {
-                File commandFile = new File("botCommands/" + command + ".groovy");
-                if (commandFile.exists()) {
-                    CompilerConfiguration cc = new CompilerConfiguration();
-                    cc.setSourceEncoding("UTF-8");
-                    GroovyClassLoader gcl = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(),cc);
-                    Class clazz = gcl.parseClass(commandFile);
-                    Object aScript = clazz.newInstance();
-
-                    botCommand hw = (botCommand) aScript;
-                    long cmdLastUsedAt = -1;
-                    if (commandLastUsedAt.get(key) != null && commandLastUsedAt.get(key).get(command) != null && commandLastUsedAt.get(key).get(command).getLastUsedAt() != null) {
-                        cmdLastUsedAt = commandLastUsedAt.get(key).get(command).getLastUsedAt();
+        if (command.matches("[A-Za-z]+")) {
+            String classesDirString = StringUtils.replace(Paths.get("").toAbsolutePath().toString(), "\\", "/") + "/botCommands";
+            File classFile = new File(classesDirString + "/Command" + command + ".class");
+            if (classFile.exists()) {
+                // TODO: Check for class file changes, reload if class file was changed
+                if (!plugins.containsKey(command)) {
+                    try {
+                        File classesDir = new File(classesDirString);
+                        ClassLoader parentLoader = PluginListener.class.getClassLoader();
+                        URLClassLoader loader = new URLClassLoader(new URL[]{classesDir.toURI().toURL()}, parentLoader);
+                        Class cls = loader.loadClass("Command" + StringUtils.capitalize(command));
+                        botCommand postman1 = (botCommand) cls.newInstance();
+                        plugins.put(command, postman1);
+                    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | MalformedURLException ex) {
+                        if (plugins.containsKey(command)) {
+                            plugins.remove(command);
+                        }
+                        //Logger.getLogger(PluginListener.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                    returnVal = hw.onCommand(nick, args, cmdLastUsedAt);
-
-
+                }
+                // Still not a known command?
+                if (!plugins.containsKey(command)) {
+                    return returnVal;
+                } else if (plugins.get(command) == null) {
+                    plugins.remove(command);
+                    return returnVal;
                 }
             }
-        } catch (CompilationFailedException | IOException | InstantiationException | IllegalAccessException ex) {
-            Logger.getLogger(GroovyListener.class
-                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        botCommand hw = plugins.get(command);
+        if (hw != null) {
+            long cmdLastUsedAt = -1;
+            if (commandLastUsedAt.get(key) != null && commandLastUsedAt.get(key).get(command) != null && commandLastUsedAt.get(key).get(command).getLastUsedAt() != null) {
+                cmdLastUsedAt = commandLastUsedAt.get(key).get(command).getLastUsedAt();
+            }
+            returnVal = hw.onCommand(nick, args, cmdLastUsedAt);
         }
         return returnVal;
     }
