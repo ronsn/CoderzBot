@@ -6,11 +6,12 @@ public class CommandResponse {
 
     private ArrayList<String> _responseText;
     private Boolean _commandSuccesfull;
+    private Object _saveData;
 
-    public CommandResponse(ArrayList<String> responseText, Boolean commandSuccesfull) {
+    public CommandResponse(ArrayList<String> responseText, Boolean commandSuccesfull, Object saveData) {
         _responseText = responseText;
         _commandSuccesfull = commandSuccesfull;
-
+        _saveData = saveData;
     }
 
     /**
@@ -39,5 +40,19 @@ public class CommandResponse {
      */
     public void setCommandSuccesfull(Boolean commandSuccesfull) {
         this._commandSuccesfull = commandSuccesfull;
+    }
+
+    /**
+     * @return the _saveData
+     */
+    public Object getSaveData() {
+        return _saveData;
+    }
+
+    /**
+     * @param saveData the _saveData to set
+     */
+    public void setSaveData(Object saveData) {
+        this._saveData = saveData;
     }
 }
