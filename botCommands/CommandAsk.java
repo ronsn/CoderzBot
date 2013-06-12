@@ -43,10 +43,10 @@ public class CommandAsk implements botCommand {
     ;
 
     @Override
-    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt) {
+    public CommandResponse onCommand(String sender, String[] params, long commandLastUsedAt, ArrayList<String> knownUsers) {
         ArrayList<String> responsetext = new ArrayList<>();
         Boolean success = false;
-        Integer timeBetweenBeers = 5;
+        Integer timeBetweenBeers = 2;
         if (commandLastUsedAt > -1 && (System.currentTimeMillis() - commandLastUsedAt) <= (timeBetweenBeers * 60 * 1000)) {
             long millis = (timeBetweenBeers * 60 * 1000 - (System.currentTimeMillis() - commandLastUsedAt));
             String tRemaining = String.format("%d Minuten, %d Sekunden",
