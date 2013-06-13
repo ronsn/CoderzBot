@@ -171,14 +171,14 @@ public class PluginListener extends ListenerAdapter {
         String key = nick + login + hostmask;
         if (command.matches("[A-Za-z]+")) {
             String classesDirString = StringUtils.replace(System.getProperty("user.dir"), "\\", "/") + "/botCommands";
-            File classFile = new File(classesDirString + "/Command" + StringUtils.capitalize(command) + ".class");
+            File classFile = new File(classesDirString + "/coderzServiceCommands/Command" + StringUtils.capitalize(command) + ".class");
             if (classFile.exists()) {
                 if (!plugins.containsKey(command) || pluginsChecksum.get(command) == null || !fileChecksum(classFile).equals(pluginsChecksum.get(command))) {
                     try {
                         File classesDir = new File(classesDirString);
                         ClassLoader parentLoader = PluginListener.class.getClassLoader();
                         URLClassLoader loader = new URLClassLoader(new URL[]{classesDir.toURI().toURL()}, parentLoader);
-                        Class cls = loader.loadClass("Command" + StringUtils.capitalize(command));
+                        Class cls = loader.loadClass("coderzServiceCommands.Command" + StringUtils.capitalize(command));
                         botCommand bc = (botCommand) cls.newInstance();
                         pluginsChecksum.put(command, fileChecksum(classFile));
                         plugins.put(command, bc);

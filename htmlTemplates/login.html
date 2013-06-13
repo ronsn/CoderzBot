@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <title>$title</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    </head>
+    <body>
+        #if($loginSuccessfull)
+        <p>Login successfull. <a href="/">Please go back to index</a>.</p>
+        #else
+        <form action="/login/" method="POST">
+            <input type="password" name="pass" />
+            <input type="submit" value="Login" />
+        </form>
+        #end
+    </body>
+</html>

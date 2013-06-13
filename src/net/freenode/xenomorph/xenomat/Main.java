@@ -13,14 +13,14 @@ import java.util.logging.Logger;
 import net.freenode.xenomorph.xenomat.Listeners.DisconnectListener;
 import net.freenode.xenomorph.xenomat.Listeners.GrammarListener;
 import net.freenode.xenomorph.xenomat.Listeners.PluginListener;
-import net.freenode.xenomorph.xenomat.jettyHandlers.HelloWorldHandler;
-import net.freenode.xenomorph.xenomat.jettyHandlers.ModuleActivationHandler;
-import net.freenode.xenomorph.xenomat.jettyHandlers.QuitHandler;
-import net.freenode.xenomorph.xenomat.jettyHandlers.SayHandler;
-import org.eclipse.jetty.server.Handler;
+import net.freenode.xenomorph.xenomat.jettyServlets.IndexServlet;
+import net.freenode.xenomorph.xenomat.jettyServlets.LoginServlet;
+import net.freenode.xenomorph.xenomat.jettyServlets.ModuleActivationServlet;
+import net.freenode.xenomorph.xenomat.jettyServlets.QuitServlet;
+import net.freenode.xenomorph.xenomat.jettyServlets.SayServlet;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.pircbotx.Configuration;
 import org.pircbotx.MultiBotManager;
 import org.pircbotx.PircBotX;
@@ -112,7 +112,6 @@ public class Main {
                     .setName(nick) //Set the nick of the bot. CHANGE IN YOUR CODE
                     .setAutoNickChange(true) //Automatically change nick when the current one is in use
                     .setCapEnabled(true) //Enable CAP features
-                    .addListener(new DisconnectListener()) //This class is a listener, so add it to the bots known listeners
                     .addListener(new PluginListener()) //This class is a listener, so add it to the bots known listeners
                     .addListener(gl) //This class is a listener, so add it to the bots known listeners
                     .setServerHostname(server)
@@ -123,26 +122,25 @@ public class Main {
                     .setServerPort(port)
                     .setEncoding(Charset.forName(encoding))
                     .buildConfiguration();
-
             PircBotX bot = new PircBotX(configuration);
-
+            bot.setAutoReconnect(true);
 
             MultiBotManager mbm = new MultiBotManager();
             mbm.addBot(bot);
             mbm.start();
 
             Server httpServer = new Server(8080);
-            ContextHandler moduleActivationHandler = new ContextHandler("/moduleactivation");
-            moduleActivationHandler.setHandler(new ModuleActivationHandler(bot, gl, opPass));
-            ContextHandler sayHandler = new ContextHandler("/say");
-            sayHandler.setHandler(new SayHandler(bot, opPass));
-            ContextHandler helloHandler = new ContextHandler("/");
-            helloHandler.setHandler(new HelloWorldHandler(bot));
-            ContextHandler quitHandler = new ContextHandler("/quit");
-            quitHandler.setHandler(new QuitHandler(bot, opPass));
-            ContextHandlerCollection contexts = new ContextHandlerCollection();
-            contexts.setHandlers(new Handler[]{moduleActivationHandler, helloHandler, quitHandler, sayHandler});
-            httpServer.setHandler(contexts);
+
+            ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+            context.setContextPath("/");
+            httpServer.setHandler(context);
+
+            context.addServlet(new ServletHolder(new IndexServlet(bot)), "/*");
+            context.addServlet(new ServletHolder(new LoginServlet(bot, opPass)), "/login/*");
+            context.addServlet(new ServletHolder(new SayServlet(bot)), "/say/*");
+            context.addServlet(new ServletHolder(new QuitServlet(bot)), "/quit/*");
+            context.addServlet(new ServletHolder(new ModuleActivationServlet(bot, gl)), "/moduleactivation/*");
+
             httpServer.start();
             httpServer.join();
 
