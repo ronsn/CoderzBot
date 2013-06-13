@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <title>$title</title>
+    </head>
+    <body>
+        <h1>Hello!</h1>
+        <h2>You are about to administer the bot: $botName</h2>
+        <h2>Want to shut down the server?</h2>
+        <form action="/quit/" method="POST">
+            <input type="hidden" name="shutdown" value="do" />
+            <input type="submit" value="Shutdown" />
+        </form>
+        <h2>Or maybe do you want to...</h2>
+        <ul>
+            <li><a href="/say/">Let the bot say something...</a></li>
+            <li><a href="/moduleactivation/">De/Activate the grammar check...</a></li>
+        </ul>
+    </body>
+</html>

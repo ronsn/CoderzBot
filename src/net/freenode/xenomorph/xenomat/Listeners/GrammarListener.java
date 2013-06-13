@@ -17,7 +17,6 @@ import net.freenode.xenomorph.xenomat.CheckSentence;
 import net.freenode.xenomorph.xenomat.FileTypes.txtFileType;
 import net.freenode.xenomorph.xenomat.LevenshteinDistance;
 import net.freenode.xenomorph.xenomat.XenoMatUser;
-import org.pircbotx.Channel;
 import org.pircbotx.User;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.JoinEvent;
@@ -128,7 +127,7 @@ public class GrammarListener extends ListenerAdapter {
             event.getBot().sendIRC().message(u.getUser().getNick(), "Der zu korrigierende Satz lautet:");
             event.getBot().sendIRC().message(u.getUser().getNick(), s.getWrongSentence());
         } else if (grammarWhitelist.contains(event.getUser().getNick()) && event.getChannel().isOp(event.getBot().getUserBot()) && !event.getUser().getNick().equals(event.getBot().getNick())) {
-            event.getChannel().send().op(event.getUser());
+            event.getChannel().send().voice(event.getUser());
         } else if (event.getBot().getNick().equals(event.getUser().getNick())) {
             channels.put(event.getChannel().getName(), new XenoMatChannel(event.getChannel().getName(), false, event.getChannel()));
         }
