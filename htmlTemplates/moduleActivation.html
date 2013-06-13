@@ -1,0 +1,13 @@
+<html>
+    <head>
+        <title>$title</title>
+    </head>
+    <body>
+        <h1>The grammar check module is: #if($grammarCheckActive)<span style="color:green">Active</span> #else <span style="color:red">Inactive</span>#end!</h1>
+            <form action="/moduleactivation/" method="POST">
+                <input type="hidden" name="mode" value="toggleGrammar" />
+                <input type="submit" value="Toggle" />
+            </form>
+        <p><a href="/">Go back home...</a></p>
+    </body>
+</html>

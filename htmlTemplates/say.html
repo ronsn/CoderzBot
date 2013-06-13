@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>$title</title>
+    </head>
+    <body>
+        #if( "$!msgSent" != "" )<h1>$msgSent</h1>#end
+        #if( "$!msgError" != "" )<h1>$msgError</h1>#end
+        <form action="/say/" method="POST">
+            <input type="hidden" name="mode" value="say" />
+            Message: <input type="text" name="msg" /><br />
+            <input type="radio" name="sayTargetType" value="channel" #if( "$!lastTarget" == "channel" ) checked="checked" #end />Channel: <select name="channel" size="1">
+                #foreach( $channel in $channels)
+                <option #if( "$!lastChannel" == $channel ) selected="selected" #end>$channel</option>
+                #end
+            </select><br />
+            <p>or</p>
+            <input type="radio" name="sayTargetType" value="user" #if( "$!lastTarget" == "user" ) checked="checked" #end />
+            User: <select name="user" size="1">
+                #foreach( $user in $users )
+                <option #if( "$!lastUser" == $user ) selected="selected" #end>$user</option>
+                #end
+            </select><br />
+            <input type="submit" value="Say it!" />
+        </form>
+        <p><a href="/">Go back home...</a></p>
+    </body>
+</html>
