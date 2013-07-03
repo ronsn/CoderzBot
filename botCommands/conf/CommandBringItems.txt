@@ -1,0 +1,13 @@
+steak;ein saftiges Steak
+pommes;einmal Pommes Schranke
+salat;einen frischen, knackigen Salat
+ofenkartoffel;eine riesige Ofenkartoffel mit Sourcream
+zwiebelpfanne;eine Zwiebelpfanne mit Hack. Vorsicht heiß!
+pestolamm;rosa Pestolamm im Strudelteig mit Portweinjus, Rosmarinkartoffeln und Brokkoli
+cola;eine kühle Cola
+fanta;eine spritzige Fante
+sprite;ein Glas kühle Sprite
+gintonic;einen Safron-Gin mit Firetree Tonic Water
+clubmate;eine Flasche Club Mate
+wasser;ein Glas erfrischendes Wasser
+tee;eine Tasse heißes Wasser und ein Sortiment Teebeutel zum aussuchen

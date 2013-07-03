@@ -1,3 +1,7 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package net.freenode.xenomorph.xenomat.jettyServlets;
 
 import java.io.IOException;
@@ -11,13 +15,14 @@ import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
+import org.pircbotx.User;
 
-public class JoinPartServlet extends HttpServlet {
+public class SetMode extends HttpServlet {
 
     private PircBotX _bot;
-    private VelocityContext _vContext;
+    VelocityContext _vContext;
 
-    public JoinPartServlet(PircBotX bot) {
+    public SetMode(PircBotX bot) {
         _bot = bot;
         _vContext = new VelocityContext();
     }
@@ -40,27 +45,21 @@ public class JoinPartServlet extends HttpServlet {
             return;
         }
 
-        if (request.getParameter("mode") != null && !request.getParameter("mode").isEmpty() && request.getParameter("mode").equals("join") && request.getParameter("joinChannels") != null && !request.getParameter("joinChannels").isEmpty()) {
-            String[] channelsToJoin = request.getParameter("joinChannels").split(",");
-            for (String channelToJoin : channelsToJoin) {
-                _bot.sendIRC().joinChannel(channelToJoin);
-            }
-        } else if (request.getParameter("mode") != null && !request.getParameter("mode").isEmpty() && request.getParameter("mode").equals("part") && request.getParameter("partChannel") != null && !request.getParameter("partChannel").isEmpty()) {
-            for (Channel c : _bot.getUserBot().getChannels()) {
-                if (c.getName().equals(request.getParameter("partChannel"))) {
-                    c.send().part();
+        _vContext.put("title", _bot.getNick() + " - Administration");
+
+        ArrayList<String> channelsUsers = new ArrayList<>();
+        for (Channel c : _bot.getUserBot().getChannels()) {
+            if (c.isOp(_bot.getUserBot())) {
+                for (User u : c.getUsers()) {
+                    if (!u.equals(_bot.getUserBot())) {
+                        channelsUsers.add(c.getName() + " - " + u.getNick());
+                    }
                 }
             }
         }
-
-        _vContext.put("title", _bot.getNick() + " - Administration");
-        ArrayList<String> channels = new ArrayList<>();
-        for (Channel chan : _bot.getUserBot().getChannels()) {
-            channels.add(chan.getName());
-        }
-        _vContext.put("channels", channels);
+        _vContext.put("channelsUsers", channelsUsers);
         Template template = null;
-        template = Velocity.getTemplate("htmlTemplates/joinPart.html");
+        template = Velocity.getTemplate("htmlTemplates/setMode.html");
         StringWriter sw = new StringWriter();
         template.merge(_vContext, sw);
         response.getWriter().print(sw.toString());
