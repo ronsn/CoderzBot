@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    </head>
+    <body>
+        <h2>Change user modes</h2>
+        <form action="/setmode/" method="POST">
+            <select name="channelUser">
+                #foreach( $channelUser in $channelsUsers)
+                <option>$channelUser</option>
+                #end
+            </select>
+            should get these modes: <input type="text" name="usermodes" value="" style="width:80%" /><br />
+            <input type="submit" value="Set!" />
+        </form>
+        <br />
+        <h3>Need some help? Come get some!</h3>
+        <p>In the text fields above enter a string without whitespaces, consisting of the modes the user should get or loose.<br />
+        Example: "-o+v" retracts op and gives voice</p>
+        <pre>+/-v: enables/disables voice - user can speak only with voice if channel is +m (moderated)
++/-o: enables/disables Channel-God-Mode. Use only if you're damn sure what you're doing!</pre>
+        <p><a href="/">Go back home...</a></p>
+    </body>
+</html>
