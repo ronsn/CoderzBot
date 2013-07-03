@@ -10,14 +10,15 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import net.freenode.xenomorph.xenomat.Listeners.DisconnectListener;
 import net.freenode.xenomorph.xenomat.Listeners.GrammarListener;
 import net.freenode.xenomorph.xenomat.Listeners.PluginListener;
 import net.freenode.xenomorph.xenomat.jettyServlets.IndexServlet;
+import net.freenode.xenomorph.xenomat.jettyServlets.JoinPartServlet;
 import net.freenode.xenomorph.xenomat.jettyServlets.LoginServlet;
 import net.freenode.xenomorph.xenomat.jettyServlets.ModuleActivationServlet;
 import net.freenode.xenomorph.xenomat.jettyServlets.QuitServlet;
 import net.freenode.xenomorph.xenomat.jettyServlets.SayServlet;
+import net.freenode.xenomorph.xenomat.jettyServlets.SetMode;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -139,6 +140,8 @@ public class Main {
             context.addServlet(new ServletHolder(new LoginServlet(bot, opPass)), "/login/*");
             context.addServlet(new ServletHolder(new SayServlet(bot)), "/say/*");
             context.addServlet(new ServletHolder(new QuitServlet(bot)), "/quit/*");
+            context.addServlet(new ServletHolder(new JoinPartServlet(bot)), "/joinpart/*");
+            context.addServlet(new ServletHolder(new SetMode(bot)), "/setmode/*");
             context.addServlet(new ServletHolder(new ModuleActivationServlet(bot, gl)), "/moduleactivation/*");
 
             httpServer.start();
