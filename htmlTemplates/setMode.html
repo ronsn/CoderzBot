@@ -1,26 +1,44 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title></title>
+        <title>Change user modes</title>
+        <script type="text/javascript">
+            function checkConfirm() {
+                var returnVal = false;
+                var e = document.getElementById("channelUser");
+                var strUser = e.options[e.selectedIndex].text;
+                var cbOP = document.getElementById("usermodeOP").checked;
+                var cbVOICE = document.getElementById("usermodeVOICE").checked;
+                var cbOPs = "RETRACT";
+                var cbVOICEs = "RETRACT";
+                if (cbOP) {
+                    cbOPs = "GIVE";
+                }
+                if (cbVOICE) {
+                    cbVOICEs = "GIVE";
+                }
+                if (confirm('I will try to\n' + cbOPs + ' OP and ' + cbVOICEs + ' VOICE\nfrom ' + strUser+'.\nIs this what you really want?')) {
+                    returnVal = true;
+                }
+                return returnVal;
+            }
+        </script>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     </head>
     <body>
         <h2>Change user modes</h2>
-        <form action="/setmode/" method="POST">
-            <select name="channelUser">
+        <h3>#if($notice)$notice#end</h3>
+        <form action="/setmode/" method="POST" onSubmit="return checkConfirm();">
+            <select name="channelUser" id="channelUser">
                 #foreach( $channelUser in $channelsUsers)
                 <option>$channelUser</option>
                 #end
-            </select>
-            should get these modes: <input type="text" name="usermodes" value="" style="width:80%" /><br />
+            </select><br />
+            <input type="checkbox" name="usermodeOP" id="usermodeOP" value="yes" /> set OP?<br />
+            <input type="checkbox" name="usermodeVOICE" id="usermodeVOICE" value="yes" /> set VOICE?<br />
             <input type="submit" value="Set!" />
         </form>
-        <br />
-        <h3>Need some help? Come get some!</h3>
-        <p>In the text fields above enter a string without whitespaces, consisting of the modes the user should get or loose.<br />
-        Example: "-o+v" retracts op and gives voice</p>
-        <pre>+/-v: enables/disables voice - user can speak only with voice if channel is +m (moderated)
-+/-o: enables/disables Channel-God-Mode. Use only if you're damn sure what you're doing!</pre>
+        <p>Note: The bot will only retract/give op or voice if the user has/has not that mode.</p>
         <p><a href="/">Go back home...</a></p>
     </body>
 </html>
