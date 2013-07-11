@@ -4,6 +4,9 @@ Port=
 # The nickname and password, if the botnick is registeres with nickserv
 Nick=IAmImpatient
 NickPass=
+# The parse.com credentials if the voice module is being used
+ParseApplicationID=
+ParseRESTAPIKey=
 # login part of hostmask, eg nick!login@host
 Login=
 # The password for the irc server. Only fill if needed

@@ -75,22 +75,24 @@ public class Main {
             String _port = properties.getProperty("Port", "6667");
             Integer port = _port.isEmpty() ? 6667 : Integer.valueOf(_port);// Ternary operator ensures there is a default value set
             String channelList = properties.getProperty("ChannelList", "");
-            String _banTime = properties.getProperty("BanTime", "10");
-            Integer banTime = _banTime.isEmpty() ? 10 : Integer.valueOf(_banTime);
-            String _answerTime = properties.getProperty("AnswerTime", "10");
-            Integer answerTime = _answerTime.isEmpty() ? 10 : Integer.valueOf(_answerTime);
-            String _grammarFloodLimit = properties.getProperty("GrammarFloodLimit", "6");
-            Integer grammarFloodLimit = _grammarFloodLimit.isEmpty() ? 6 : Integer.valueOf(_grammarFloodLimit);
-            String _grammarFloodTime = properties.getProperty("GrammarFloodTime", "10");
-            Integer grammarFloodTime = _grammarFloodTime.isEmpty() ? 10 : Integer.valueOf(_grammarFloodTime);
-            boolean useGrammarFloodLimit = false;
-            if (properties.getProperty("UseGrammarFloodLimit", "false").equals("true")) {
-                useGrammarFloodLimit = true;
-            }
-            boolean grammarCheckActive = false;
-            if (properties.getProperty("GrammarCheckActive", "false").equals("true")) {
-                grammarCheckActive = true;
-            }
+//            String _banTime = properties.getProperty("BanTime", "10");
+//            Integer banTime = _banTime.isEmpty() ? 10 : Integer.valueOf(_banTime);
+//            String _answerTime = properties.getProperty("AnswerTime", "10");
+//            Integer answerTime = _answerTime.isEmpty() ? 10 : Integer.valueOf(_answerTime);
+//            String _grammarFloodLimit = properties.getProperty("GrammarFloodLimit", "6");
+//            Integer grammarFloodLimit = _grammarFloodLimit.isEmpty() ? 6 : Integer.valueOf(_grammarFloodLimit);
+//            String _grammarFloodTime = properties.getProperty("GrammarFloodTime", "10");
+//            Integer grammarFloodTime = _grammarFloodTime.isEmpty() ? 10 : Integer.valueOf(_grammarFloodTime);
+            String ParseApplicationID = properties.getProperty("ParseApplicationID", "");
+            String ParseRESTAPIKey = properties.getProperty("ParseRESTAPIKey", "");
+//            boolean useGrammarFloodLimit = false;
+//            if (properties.getProperty("UseGrammarFloodLimit", "false").equals("true")) {
+//                useGrammarFloodLimit = true;
+//            }
+//            boolean grammarCheckActive = false;
+//            if (properties.getProperty("GrammarCheckActive", "false").equals("true")) {
+//                grammarCheckActive = true;
+//            }
             boolean killGhost = false;
             if (properties.getProperty("KillGhost", "false").equals("true")) {
                 killGhost = true;
@@ -107,14 +109,14 @@ public class Main {
 
 
             //Setup this bot
-            GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime, grammarCheckActive);
+//            GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime, grammarCheckActive);
             Configuration configuration = new XenoConf.XenoBuilder()
                     .addAutoJoinChannels(channels) // MUST be set first, since all methods that are not overwritten do return an instance of Builder, not XenoBuilder!!!
                     .setName(nick) //Set the nick of the bot. CHANGE IN YOUR CODE
                     .setAutoNickChange(true) //Automatically change nick when the current one is in use
                     .setCapEnabled(true) //Enable CAP features
-                    .addListener(new PluginListener()) //This class is a listener, so add it to the bots known listeners
-                    .addListener(gl) //This class is a listener, so add it to the bots known listeners
+                    .addListener(new PluginListener(ParseApplicationID,ParseRESTAPIKey)) //This class is a listener, so add it to the bots known listeners
+//                    .addListener(gl) //This class is a listener, so add it to the bots known listeners
                     .setServerHostname(server)
                     .setLogin(login)
                     .setNickservPassword(nickPass)
@@ -142,7 +144,7 @@ public class Main {
             context.addServlet(new ServletHolder(new QuitServlet(bot)), "/quit/*");
             context.addServlet(new ServletHolder(new JoinPartServlet(bot)), "/joinpart/*");
             context.addServlet(new ServletHolder(new SetMode(bot)), "/setmode/*");
-            context.addServlet(new ServletHolder(new ModuleActivationServlet(bot, gl)), "/moduleactivation/*");
+//            context.addServlet(new ServletHolder(new ModuleActivationServlet(bot, gl)), "/moduleactivation/*");
 
             httpServer.start();
             httpServer.join();
