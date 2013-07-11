@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Edit WhiteList</title>
+        <meta name="viewport" content="width=device-width, initial-scale=0.5, maximum-scale=0.7">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    </head>
+    <body>
+        <h2>Edit WhiteList</h2>
+        <form action="/whitelist/" method="POST">
+            <textarea name="whitelist" style="width:100%;height: 20em;">#if($whitelist)$whitelist#end</textarea><br />
+            <input type="submit" value="Save changes" />
+        </form>
+        <p><a href="/">Go back home...</a></p>
+    </body>
+</html>
