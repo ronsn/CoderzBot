@@ -31,6 +31,11 @@ public class WhiteListServlet extends HttpServlet {
     }
 
     @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        doGet(request, response);
+    }
+
+    @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("text/html;charset=utf-8");
         response.setStatus(HttpServletResponse.SC_OK);
@@ -57,9 +62,9 @@ public class WhiteListServlet extends HttpServlet {
                 if (file.exists()) {
                     file.delete();
                 }
-                BufferedWriter writer = new BufferedWriter(new FileWriter("whitelist.txt"));
-                writer.write(request.getParameter("whitelist"));
-                writer.close();
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter("whitelist.txt"))) {
+                    writer.write(request.getParameter("whitelist"));
+                }
             }
         }
 
