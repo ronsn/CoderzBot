@@ -1,13 +1,16 @@
 package net.freenode.xenomorph.xenomat;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.freenode.xenomorph.xenomat.Listeners.PluginListener;
@@ -17,6 +20,9 @@ import net.freenode.xenomorph.xenomat.jettyServlets.LoginServlet;
 import net.freenode.xenomorph.xenomat.jettyServlets.QuitServlet;
 import net.freenode.xenomorph.xenomat.jettyServlets.SayServlet;
 import net.freenode.xenomorph.xenomat.jettyServlets.SetMode;
+import net.freenode.xenomorph.xenomat.jettyServlets.VoiceRequest;
+import net.freenode.xenomorph.xenomat.jettyServlets.VoiceRequestServlet;
+import net.freenode.xenomorph.xenomat.jettyServlets.WhiteListServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -27,6 +33,8 @@ import org.pircbotx.PircBotX;
 public class Main {
 
     private static String botConfigFile = "bot.properties";
+    private static ConcurrentHashMap<String, VoiceRequest> voiceRequests = new ConcurrentHashMap<>();
+    private static ArrayList<String> _whiteList;
 
     /**
      * @param args the command line arguments
@@ -73,24 +81,8 @@ public class Main {
             String _port = properties.getProperty("Port", "6667");
             Integer port = _port.isEmpty() ? 6667 : Integer.valueOf(_port);// Ternary operator ensures there is a default value set
             String channelList = properties.getProperty("ChannelList", "");
-//            String _banTime = properties.getProperty("BanTime", "10");
-//            Integer banTime = _banTime.isEmpty() ? 10 : Integer.valueOf(_banTime);
-//            String _answerTime = properties.getProperty("AnswerTime", "10");
-//            Integer answerTime = _answerTime.isEmpty() ? 10 : Integer.valueOf(_answerTime);
-//            String _grammarFloodLimit = properties.getProperty("GrammarFloodLimit", "6");
-//            Integer grammarFloodLimit = _grammarFloodLimit.isEmpty() ? 6 : Integer.valueOf(_grammarFloodLimit);
-//            String _grammarFloodTime = properties.getProperty("GrammarFloodTime", "10");
-//            Integer grammarFloodTime = _grammarFloodTime.isEmpty() ? 10 : Integer.valueOf(_grammarFloodTime);
             String ParseApplicationID = properties.getProperty("ParseApplicationID", "");
             String ParseRESTAPIKey = properties.getProperty("ParseRESTAPIKey", "");
-//            boolean useGrammarFloodLimit = false;
-//            if (properties.getProperty("UseGrammarFloodLimit", "false").equals("true")) {
-//                useGrammarFloodLimit = true;
-//            }
-//            boolean grammarCheckActive = false;
-//            if (properties.getProperty("GrammarCheckActive", "false").equals("true")) {
-//                grammarCheckActive = true;
-//            }
             boolean killGhost = false;
             if (properties.getProperty("KillGhost", "false").equals("true")) {
                 killGhost = true;
@@ -105,16 +97,17 @@ public class Main {
                 channels = Arrays.asList(channelList.split("\\s*,\\s*"));
             }
 
+            //Get WhiteList
+            _whiteList = fileToArrayList("whitelist.txt", FileTypes.txtFileType.WHITELIST);
 
             //Setup this bot
-//            GrammarListener gl = new GrammarListener(nick, answerTime, banTime, useGrammarFloodLimit, grammarFloodLimit, grammarFloodTime, grammarCheckActive);
             Configuration configuration = new XenoConf.XenoBuilder()
                     .addAutoJoinChannels(channels) // MUST be set first, since all methods that are not overwritten do return an instance of Builder, not XenoBuilder!!!
                     .setName(nick) //Set the nick of the bot. CHANGE IN YOUR CODE
                     .setAutoNickChange(true) //Automatically change nick when the current one is in use
                     .setCapEnabled(true) //Enable CAP features
-                    .addListener(new PluginListener(ParseApplicationID,ParseRESTAPIKey)) //This class is a listener, so add it to the bots known listeners
-//                    .addListener(gl) //This class is a listener, so add it to the bots known listeners
+                    .addListener(new PluginListener(ParseApplicationID, ParseRESTAPIKey, voiceRequests, _whiteList)) //This class is a listener, so add it to the bots known listeners
+                    //                    .addListener(gl) //This class is a listener, so add it to the bots known listeners
                     .setServerHostname(server)
                     .setLogin(login)
                     .setNickservPassword(nickPass)
@@ -142,13 +135,48 @@ public class Main {
             context.addServlet(new ServletHolder(new QuitServlet(bot)), "/quit/*");
             context.addServlet(new ServletHolder(new JoinPartServlet(bot)), "/joinpart/*");
             context.addServlet(new ServletHolder(new SetMode(bot)), "/setmode/*");
-//            context.addServlet(new ServletHolder(new ModuleActivationServlet(bot, gl)), "/moduleactivation/*");
-
+            context.addServlet(new ServletHolder(new VoiceRequestServlet(bot, voiceRequests)), "/voicerequests/*");
+            context.addServlet(new ServletHolder(new WhiteListServlet(bot, _whiteList)), "/whitelist/*");
             httpServer.start();
             httpServer.join();
 
         } catch (Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private static ArrayList<String> fileToArrayList(String fileName, FileTypes.txtFileType type) {
+        ArrayList<String> returnList = new ArrayList<>();
+        try {
+            File f = new File(fileName);
+            if (!f.exists()) {
+                System.out.println("File " + f.getCanonicalPath() + " doesn't exist.");
+                return new ArrayList<>();
+            }
+            // not needed anymore
+            f = null;
+            FileReader fr = new FileReader(fileName);
+            BufferedReader br = new BufferedReader(fr);
+            String stringRead = br.readLine();
+
+            while (stringRead != null) {
+                String line = new String(stringRead.getBytes(), "UTF-8").trim();
+                if (!line.startsWith("#") && !line.isEmpty()) { // ignore comments and empty lines
+                    if (type.equals(FileTypes.txtFileType.WHITELIST)) {
+                        returnList.add(line.trim());
+                    }
+                }
+                // read the next line
+                stringRead = br.readLine();
+            }
+            br.close();
+
+
+        } catch (Exception ex) {
+            Logger.getLogger(Main.class
+                    .getName()).log(Level.SEVERE, null, ex);
+            return new ArrayList<>();
+        }
+        return returnList;
     }
 }
