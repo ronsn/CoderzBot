@@ -1,9 +1,7 @@
 package net.freenode.xenomorph.xenomat.Listeners;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,7 +12,6 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import net.freenode.xenomorph.xenomat.CheckSentence;
 import net.freenode.xenomorph.xenomat.Command;
 import org.apache.commons.lang3.StringUtils;
 import org.pircbotx.hooks.ListenerAdapter;
@@ -22,8 +19,8 @@ import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.NickChangeEvent;
 import org.pircbotx.hooks.events.PrivateMessageEvent;
 import net.freenode.xenomorph.xenomat.CommandResponse;
-import net.freenode.xenomorph.xenomat.FileTypes;
 import net.freenode.xenomorph.xenomat.botCommand;
+import net.freenode.xenomorph.xenomat.jettyServlets.VoiceRequest;
 import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
 import org.pircbotx.User;
@@ -34,19 +31,20 @@ public class PluginListener extends ListenerAdapter {
     private ConcurrentHashMap<String, botCommand> plugins;
     private ConcurrentHashMap<String, String> pluginsChecksum;
     private ConcurrentHashMap<String, HashMap<String, Command>> commandLastUsedAt;
-    String grammarWhitelistFile = "whitelist.txt";
-    private ArrayList<String> grammarWhitelist;
+    private ArrayList<String> _whiteList;
     private String _pApiKey;
     private String _pAppID;
+    private final ConcurrentHashMap<String, VoiceRequest> _voiceRequests;
 
-    public PluginListener(String ParseApplicationID, String ParseRESTAPIKey) {
+    public PluginListener(String ParseApplicationID, String ParseRESTAPIKey, ConcurrentHashMap<String, VoiceRequest> voiceRequests, ArrayList<String> whiteList) {
         plugins = new ConcurrentHashMap<>();
         pluginsChecksum = new ConcurrentHashMap<>();
         commandLastUsedAt = new ConcurrentHashMap<>();
-        grammarWhitelist = fileToArrayList(grammarWhitelistFile, FileTypes.txtFileType.WHITELIST);
+        _whiteList = whiteList;
 
         _pAppID = ParseApplicationID;
         _pApiKey = ParseRESTAPIKey;
+        _voiceRequests = voiceRequests;
     }
 
     @Override
@@ -99,14 +97,20 @@ public class PluginListener extends ListenerAdapter {
 
     @Override
     public void onJoin(JoinEvent event) {
-        if (event.getChannel().isModerated() && event.getChannel().isOp(event.getBot().getUserBot()) && !grammarWhitelist.contains(event.getUser().getNick()) && !event.getUser().getNick().equals(event.getBot().getNick())) {
-            event.getBot().sendIRC().message(event.getUser().getNick(), "Der Channel "+event.getChannel().getName()+" ist moderiert.");
-            event.getBot().sendIRC().message(event.getUser().getNick(), "Um voice zu erhalten und schreiben zu können, wende Dich bitte per Query an einen der anderen User, die Op-Rechte haben.");
-            event.getBot().sendIRC().message(event.getUser().getNick(), "Wir bemühen uns dann, Deine Anfrage so schnell wie möglich zu bearbeiten.");
-            event.getBot().sendIRC().message(event.getUser().getNick(), "Wir arbeiten daran, diesen Prozess weiter zu beschleunigen und zu automatisieren.");
-            event.getBot().sendIRC().message(event.getUser().getNick(), "Bis dahin: Danke für Deine Geduld.");
-        } else if (grammarWhitelist.contains(event.getUser().getNick()) && event.getChannel().isOp(event.getBot().getUserBot()) && !event.getUser().getNick().equals(event.getBot().getNick()) && event.getUser().isVerified()) {
-            event.getChannel().send().voice(event.getUser());
+        synchronized (_whiteList) {
+            if (event.getChannel().isModerated() && event.getChannel().isOp(event.getBot().getUserBot()) && !_whiteList.contains(event.getUser().getNick()) && !event.getUser().getNick().equals(event.getBot().getNick())) {
+                event.getBot().sendIRC().message(event.getUser().getNick(), "Der Channel " + event.getChannel().getName() + " ist moderiert.");
+                event.getBot().sendIRC().message(event.getUser().getNick(), "Um voice zu erhalten und schreiben zu können, wende Dich bitte per Query an einen der anderen User, die Op-Rechte haben.");
+                event.getBot().sendIRC().message(event.getUser().getNick(), "Wir bemühen uns dann, Deine Anfrage so schnell wie möglich zu bearbeiten.");
+                event.getBot().sendIRC().message(event.getUser().getNick(), "Wir arbeiten daran, diesen Prozess weiter zu beschleunigen und zu automatisieren.");
+                event.getBot().sendIRC().message(event.getUser().getNick(), "Bis dahin: Danke für Deine Geduld.");
+                String userHash = event.getUser().getNick() + "!" + event.getUser().getLogin() + "@" + event.getUser().getHostmask();
+                if (!_voiceRequests.containsKey(userHash)) {
+                    _voiceRequests.put(userHash, new VoiceRequest(false, event.getUser(), event.getChannel()));
+                }
+            } else if (_whiteList.contains(event.getUser().getNick()) && event.getChannel().isOp(event.getBot().getUserBot()) && !event.getUser().getNick().equals(event.getBot().getNick()) && event.getUser().isVerified()) {
+                event.getChannel().send().voice(event.getUser());
+            }
         }
     }
 
@@ -239,47 +243,5 @@ public class PluginListener extends ListenerAdapter {
             returnVal = hw.onCommand(nick, args, cmdLastUsedAt, knownUsers, savedData);
         }
         return returnVal;
-    }
-
-    private ArrayList fileToArrayList(String fileName, FileTypes.txtFileType type) {
-        ArrayList returnList = new ArrayList<>();
-        try {
-            File f = new File(fileName);
-            if (!f.exists()) {
-                System.out.println("File " + f.getCanonicalPath() + " doesn't exist.");
-                System.exit(0);
-            }
-            // not needed anymore
-            f = null;
-            FileReader fr = new FileReader(fileName);
-            BufferedReader br = new BufferedReader(fr);
-            String stringRead = br.readLine();
-
-            while (stringRead != null) {
-                String line = new String(stringRead.getBytes(), "UTF-8").trim();
-                if (!line.startsWith("#") && !line.isEmpty()) { // ignore comments and empty lines
-                    if (type.equals(FileTypes.txtFileType.SENTENCES)) {
-                        String[] sentenceParts = line.split("\\s*--\\s*");
-                        if (sentenceParts.length != 2) {
-                            throw new Exception("Error in " + f.getCanonicalPath() + " - Line " + line);
-                        } else {
-
-                            returnList.add(new CheckSentence(sentenceParts[0], sentenceParts[1]));
-                        }
-                    } else if (type.equals(FileTypes.txtFileType.WHITELIST)) {
-                        returnList.add(line.trim());
-                    }
-                }
-                // read the next line
-                stringRead = br.readLine();
-            }
-            br.close();
-
-
-        } catch (Exception ex) {
-            Logger.getLogger(GrammarListener.class
-                    .getName()).log(Level.SEVERE, null, ex);
-        }
-        return returnList;
     }
 }

@@ -30,6 +30,9 @@ public class LoginServlet extends HttpServlet {
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         SessionHelper.removeAdmin(request);
+        response.setHeader("Cache-Control", "no-cache, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
         if (request.getParameter("pass") != null && request.getParameter("pass").equals(_botPass)) {
             SessionHelper.setAdmin(request);
             _vContext.put("loginSuccessfull", true);

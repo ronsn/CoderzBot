@@ -36,6 +36,9 @@ public class SayServlet extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("text/html;charset=utf-8");
         response.setStatus(HttpServletResponse.SC_OK);
+        response.setHeader("Cache-Control", "no-cache, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
         if (!SessionHelper.isAdmin(request)) {
             Template template = null;
             template = Velocity.getTemplate("htmlTemplates/errorNotAuthenticated.html");
